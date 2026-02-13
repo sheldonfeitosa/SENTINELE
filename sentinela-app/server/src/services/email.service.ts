@@ -1,12 +1,18 @@
 import { Resend } from 'resend';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export class EmailService {
+    private _resend: Resend | null = null;
     private fromEmail = 'onboarding@resend.dev'; // Default Resend testing email
+
+    private get resend() {
+        if (!this._resend) {
+            if (!process.env.RESEND_API_KEY) {
+                console.warn('RESEND_API_KEY is missing');
+            }
+            this._resend = new Resend(process.env.RESEND_API_KEY);
+        }
+        return this._resend;
+    }
 
     async sendWelcomeEmail(email: string, name: string, password: string, loginUrl: string) {
         const html = `
@@ -36,7 +42,7 @@ export class EmailService {
         `;
 
         try {
-            await resend.emails.send({
+            await this.resend.emails.send({
                 from: this.fromEmail,
                 to: email,
                 subject: 'Bem-vindo ao Sentinela AI - Suas Credenciais de Acesso',
