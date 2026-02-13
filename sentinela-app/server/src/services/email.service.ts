@@ -154,7 +154,7 @@ export class EmailService {
 
         try {
             console.log(`📧 Attempting to send Incident Notification to: ${riskManagerEmail}`);
-            const result = await resend.emails.send({
+            const result = await this.resend.emails.send({
                 from: this.fromEmail,
                 to: riskManagerEmail,
                 subject: `[SENTINELA AI] NOTIFICAÇÃO: Nº ${incident.id}`,
@@ -195,7 +195,7 @@ export class EmailService {
         `;
 
         try {
-            await resend.emails.send({
+            await this.resend.emails.send({
                 from: this.fromEmail,
                 to: sectorManagerEmail,
                 subject: `[AÇÃO NECESSÁRIA] Notificação #${incident.id}`,
@@ -305,7 +305,7 @@ export class EmailService {
         if (highManagementEmails.length > 0) {
             console.log(`📧 Sending High Management Report to: ${highManagementEmails.join(', ')}`);
             try {
-                const result = await resend.emails.send({
+                const result = await this.resend.emails.send({
                     from: this.fromEmail,
                     to: highManagementEmails,
                     subject: `[ALTA GESTÃO] NOTA DE ESCALONAMENTO - Notificação Nº ${incident.id}`,
@@ -360,7 +360,7 @@ export class EmailService {
         `;
 
         try {
-            await resend.emails.send({
+            await this.resend.emails.send({
                 from: this.fromEmail,
                 to: riskManagerEmail,
                 subject: `[SOLICITAÇÃO] Alteração de Prazo - Notificação #${incident.id}`,
@@ -393,7 +393,7 @@ export class EmailService {
             </div>
         `;
 
-        await resend.emails.send({
+        await this.resend.emails.send({
             from: 'Sentinela AI <onboarding@resend.dev>',
             to: managerEmail,
             subject: `[DEFERIDO] Novo Prazo para Notificação #${incident.id}`,
@@ -421,7 +421,7 @@ export class EmailService {
             </div>
         `;
 
-        await resend.emails.send({
+        await this.resend.emails.send({
             from: 'Sentinela AI <onboarding@resend.dev>',
             to: managerEmail,
             subject: `[INDEFERIDO] Solicitação de Prazo - Notificação #${incident.id}`,
@@ -446,7 +446,7 @@ export class EmailService {
         `;
 
         // Send to yourself (Admin)
-        await resend.emails.send({
+        await this.resend.emails.send({
             from: this.fromEmail,
             to: process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com', // Fallback to provided email
             subject: `[LEAD] Novo Teste Grátis: ${data.name} - ${data.hospital}`,
