@@ -196,7 +196,7 @@ const LoginPage: React.FC = () => {
                             {error && (
                                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-red-700 text-sm">
                                     <AlertCircle className="w-5 h-5 shrink-0" />
-                                    <p>{error}</p>
+                                    <p>{typeof error === 'object' ? (error as any).message || JSON.stringify(error) : error}</p>
                                 </div>
                             )}
 

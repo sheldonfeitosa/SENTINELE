@@ -470,7 +470,7 @@ export function TratativaPage() {
         return (
             <div className="flex flex-col items-center justify-center h-64 text-red-600">
                 <AlertTriangle className="w-12 h-12 mb-2" />
-                <p className="font-bold">{error}</p>
+                <p className="font-bold">{typeof error === 'object' ? (error as any).message || JSON.stringify(error) : error}</p>
                 <button onClick={() => navigate(-1)} className="mt-4 text-[#003366] underline">
                     Voltar
                 </button>

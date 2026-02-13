@@ -94,7 +94,7 @@ export function SectorManagementModal({ isOpen, onClose }: SectorManagementModal
 
                 {error && (
                     <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
-                        {error}
+                        {typeof error === 'object' ? (error as any).message || JSON.stringify(error) : error}
                     </div>
                 )}
 
