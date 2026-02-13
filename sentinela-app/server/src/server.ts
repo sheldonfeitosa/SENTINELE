@@ -1,0 +1,84 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import dotenv from 'dotenv';
+import { notificationRoutes } from './routes/notification.routes';
+import riskManagerRoutes from './routes/risk-manager.routes';
+import sectorRoutes from './routes/sector.routes';
+import dashboardRoutes from './routes/dashboard.routes';
+import webhookRoutes from './routes/webhook.routes';
+import subscriptionRoutes from './routes/subscription.routes';
+import articleRoutes from './routes/article.routes';
+import linkedinRoutes from './routes/linkedin.routes';
+
+
+import { authRoutes } from './routes/auth.routes';
+import { authenticate } from './middlewares/auth.middleware';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Security Middleware
+app.use(helmet()); // Security Headers
+app.use(cors({
+    origin: '*', // Allow all origins for mobile testing
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Webhook must be before express.json()
+app.use('/api', webhookRoutes);
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+app.use(express.json());
+
+// Version Check Middleware
+app.use((req, res, next) => {
+    res.setHeader('X-Backend-Version', '2.0.0-fixed');
+    next();
+});
+
+// Simple Health Check (No DB)
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', version: '2.0.0-fixed' });
+});
+
+// Public Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/notifications', notificationRoutes); // Reporting is public
+app.use('/api/sectors', sectorRoutes); // Listing sectors implies public or minimal auth
+
+// Protected Routes
+app.use('/api/managers', authenticate, riskManagerRoutes);
+app.use('/api/dashboard', authenticate, dashboardRoutes);
+
+console.log('Mounting /api/subscription routes...');
+app.use('/api/subscription', authenticate, subscriptionRoutes);
+console.log('Mounted /api/subscription routes.');
+
+app.use('/api/articles', articleRoutes);
+app.use('/api/linkedin', linkedinRoutes);
+
+app.get('/', (req, res) => {
+    res.send('Sentinela AI API is running - SAAS-AUTH-ACTIVE');
+});
+
+// Export app for Vercel
+export default app;
+
+// Only listen if run directly (not imported as a module for Vercel)
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log('Server updated at', new Date().toISOString());
+    });
+}

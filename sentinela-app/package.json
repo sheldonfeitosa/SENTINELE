@@ -1,0 +1,12 @@
+{
+    "name": "sentinela-app-root",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build": "cd server && npm install && npx prisma generate && cd ../client && npm install && npm run build"
+    },
+    "workspaces": [
+        "client",
+        "server"
+    ]
+}

@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique // For subdomain/url (ex: hospital-a)
+  createdAt DateTime @default(now())
+  
+  users     User[]
+  incidents Incident[]
+  sectors   Sector[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String   // Hashed password
+  name      String
+  role      String   @default("USER") // SUPER_ADMIN, TENANT_ADMIN, RISK_ANALYST, USER
+  sectors   String?  // JSON string for notification routing (Legacy support)
+  
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  // Stripe Subscription
+  stripeCustomerId   String?
+  subscriptionStatus String? // active, trialing, past_due, canceled, unpaid
+  subscriptionId     String?
+  currentPeriodEnd   DateTime?
+  
+  createdAt DateTime @default(now())
+
+  // LinkedIn Integration
+  linkedinAccessToken String?
+  linkedinUrn         String?
+  
+  articles Article[]
+}
+
+model Incident {
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  
+  patientName   String
+  motherName    String?
+  birthDate     DateTime?
+  sex           String?
+  admissionDate DateTime?
+  eventDate     DateTime
+  period        String?
+  sector        String
+  notifySector  String
+  type          String   
+  description   String
+  reporterEmail String?
+  status        String   @default("Pendente")
+  
+  // AI Fields
+  eventTypeAi   String?
+  riskLevel     String?
+  aiAnalysis    String?
+
+  // Investigation Phase
+  investigationList String? // JSON string of checklist answers
+
+  // Action Plan Fields
+  rootCause           String? // HTML content
+  actionPlan          String? // HTML content
+  actionPlanStatus    String  @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED
+  actionPlanStartDate DateTime?
+  actionPlanDeadline  DateTime?
+}
+
+model Sector {
+  id   Int    @id @default(autoincrement())
+  name String 
+  
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  
+  @@unique([name, tenantId]) // Sector name must be unique PER tenant
+}
+
+model Article {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String   // Text or HTML
+  imageUrl  String?
+  category  String?  @default("Geral")
+  
+  published Boolean  @default(false)
+  
+  // LinkedIn Integration
+  linkedinPostId String?
+  
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
