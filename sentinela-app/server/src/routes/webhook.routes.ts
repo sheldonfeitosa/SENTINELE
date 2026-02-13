@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { stripe } from '../lib/stripe';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import Stripe from 'stripe';
 import express from 'express';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 

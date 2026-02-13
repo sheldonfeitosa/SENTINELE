@@ -1,9 +1,15 @@
 
-import { useNavigate, Outlet, Link } from 'react-router-dom';
+import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { PlusCircle, Activity, Users, BarChart2, ClipboardList, CreditCard, LogOut } from 'lucide-react';
 
 export function Layout() {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // If we are on the landing page, don't show the app layout/header
+    if (location.pathname === '/') {
+        return <Outlet />;
+    }
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -22,15 +28,15 @@ export function Layout() {
                             <p className="text-xs text-gray-300">Sistema de Notificação e Gestão de Risco</p>
                         </div>
                     </div>
-                    <nav className="hidden md:flex gap-4 text-sm font-medium items-center">
-                        <Link to="/notificacao" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                            <PlusCircle className="w-4 h-4" />
-                            Nova Notificação
-                        </Link>
 
+                    <nav className="hidden md:flex gap-4 text-sm font-medium items-center">
                         {/* Protected Links */}
                         {localStorage.getItem('token') && (
                             <>
+                                <Link to="/notificacao" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                    <PlusCircle className="w-4 h-4" />
+                                    Nova Notificação
+                                </Link>
                                 <Link to="/gestao-risco" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
                                     <Activity className="w-4 h-4" />
                                     Gestão de Risco
@@ -70,11 +76,11 @@ export function Layout() {
                         )}
                     </nav>
                 </div>
-            </header>
+            </header >
 
             <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
                 <Outlet />
             </main>
-        </div>
+        </div >
     );
 }

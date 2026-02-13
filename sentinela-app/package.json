@@ -3,10 +3,21 @@
     "version": "1.0.0",
     "private": true,
     "scripts": {
-        "build": "cd server && npm install && npx prisma generate && cd ../client && npm install && npm run build"
+        "build": "prisma generate --schema=server/prisma/schema.prisma && npm run build --workspace=client",
+        "postinstall": ""
+    },
+    "engines": {
+        "node": "20.x"
+    },
+    "devDependencies": {
+        "prisma": "^5.10.2",
+        "vite": "^7.2.4"
     },
     "workspaces": [
         "client",
         "server"
-    ]
+    ],
+    "dependencies": {
+        "@prisma/client": "^5.22.0"
+    }
 }

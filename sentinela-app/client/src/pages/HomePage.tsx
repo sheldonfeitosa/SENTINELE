@@ -7,7 +7,6 @@ import {
     Zap,
     BarChart3,
     Users,
-    CheckCircle,
     ArrowRight,
     Menu,
     X

@@ -1,7 +1,5 @@
-import { PrismaClient, Incident } from '@prisma/client';
-
-const prisma = new PrismaClient();
-// Force recompile
+import { Incident } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 export class NotificationRepository {
     async create(data: Omit<Incident, 'id' | 'createdAt' | 'status'>) {

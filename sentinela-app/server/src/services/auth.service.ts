@@ -2,8 +2,7 @@ import { PrismaClient, User, Tenant } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { EmailService } from './email.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 const SALT_ROUNDS = 10;
 const JWT_SECRET = process.env.JWT_SECRET || 'sentinela-secret-key-change-me';
 

@@ -3,6 +3,7 @@ import { AIService } from './ai.service';
 import { EmailService } from './email.service';
 import { RiskManagerRepository } from '../repositories/risk-manager.repository';
 import sanitizeHtml from 'sanitize-html';
+import { prisma } from '../lib/prisma';
 
 export class NotificationService {
     private repository: NotificationRepository;
@@ -38,45 +39,6 @@ export class NotificationService {
         }
 
         // SaaS: Get Default Tenant for public reporting
-        // In production, this would come from subdomain or token
-        // For MVP, find first tenant
-        const repositoryPrisma = (this.repository as any).prisma || new (require('@prisma/client').PrismaClient)();
-        // Note: NotificationRepository uses prisma internally but doesn't expose it. 
-        // We should fix this properly but for now assume we can query via imported prisma client if we import it, 
-        // OR better: Update NotificationRepository to handle tenant injection or look it up.
-        // Let's do the lookup here via a direct prisma call if possible, or assume the repository handles it?
-        // No, the repository expects data to match the model. The model requires tenantId.
-        // We must pass tenantId in incidentData.
-
-        // Hack: Import PrismaClient here just for the lookup if not available?
-        // Actually, we can use riskManagerRepo which we have access to? No.
-        // Let's import PrismaClient at top if we need to, but wait, we can't change imports easily in replace_file.
-        // Let's assume we can fetch it via:
-        // const defaultTenant = await this.riskManagerRepo.findFirstTenant? No.
-
-        // Let's modify the imports in this file. I'll use multi_replace for that if needed, 
-        // but for now I'll use a dynamic import or assume I can modify the file content at the top? 
-        // I am updating lines 40-66. 
-        // I will just instantiate PrismaClient here temporarily or use a helper. 
-        // Or better: pass a dummy tenant ID and let the repository find? No, constraint error.
-
-        // BETTER STRATEGY: Update the IMPORT block first, or replace the whole file? File is big.
-        // I will trust that I can import PrismaClient.
-        // Actually, I'll just change the repository.create call to include tenantId fetched from a helper I'll write inline?
-        // No.
-
-        // Let's modify the NotificationRepository to fetch the default tenant if missing?
-        // That encapsulates the logic better!
-
-        // But the error is "tenantId missing" which is a type error if I pass incidentData that lacks it.
-        // So I must provide it here.
-
-        // I'll stick to a simple strategy: Use `require` or rely on `any` casting to bypass TS locally if needed, but for runtime I need the ID.
-        // I will use `require('@prisma/client').PrismaClient`.
-
-        const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
-
         let tenantId = data.tenantId;
 
         // SaaS: Resolve Tenant by Slug if provided
@@ -99,8 +61,6 @@ export class NotificationService {
                 console.log(`Using default tenant: ${defaultTenant.name}`);
             }
         }
-
-        await prisma.$disconnect();
 
         if (!tenantId) throw new Error('System configuration error: No active tenant context found.');
 

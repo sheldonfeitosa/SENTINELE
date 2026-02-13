@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx nodemon --exec \"npx ts-node\" src/server.ts",
     "build": "npx prisma generate && tsc",
-    "postinstall": "npx prisma generate"
+    "generate": "npx prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -46,6 +46,6 @@
     "@types/sanitize-html": "^2.16.0",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.3.3"
   }
 }

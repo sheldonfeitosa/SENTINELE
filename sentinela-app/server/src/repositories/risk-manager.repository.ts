@@ -1,6 +1,5 @@
-import { PrismaClient, User } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Incident, User } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 export class RiskManagerRepository {
     async create(data: any) {

@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { stripe } from '../lib/stripe';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient(); // Or import shared instance
 
 const YOUR_DOMAIN = 'http://localhost:5173'; // Make this dynamic based on env
 

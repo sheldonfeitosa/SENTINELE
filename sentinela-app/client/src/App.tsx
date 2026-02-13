@@ -33,13 +33,20 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
 
           <Route path="/" element={<Layout />}>
-            <Route index element={<HomePage />} />
-            <Route path="notificacao" element={<NotificationForm />} />
-
+            <Route index element={
+              localStorage.getItem('token') ?
+                <Navigate to="/gestao-risco" replace /> :
+                <HomePage />
+            } />
             {/* Protected Routes */}
             <Route path="gestao-risco" element={
               <ProtectedRoute>
                 <RiskDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="notificacao" element={
+              <ProtectedRoute>
+                <NotificationForm />
               </ProtectedRoute>
             } />
             <Route path="dashboard" element={<Navigate to="/gestao-risco" replace />} />

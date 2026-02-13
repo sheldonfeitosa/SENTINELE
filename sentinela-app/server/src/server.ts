@@ -18,6 +18,19 @@ import { authenticate } from './middlewares/auth.middleware';
 
 dotenv.config();
 
+console.log('--- Initializing Sentinela AI Server ---');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Database URL status:', process.env.DATABASE_URL ? 'Present' : 'Missing');
+
+// Catch unhandled errors during startup
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('UNHANDLED REJECTION:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -49,7 +62,14 @@ app.use((req, res, next) => {
 
 // Simple Health Check (No DB)
 app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'ok', version: '2.0.0-fixed' });
+    const dbUrl = process.env.DATABASE_URL || '';
+    const maskedUrl = dbUrl.replace(/:([^@]+)@/, ':****@').split('@')[1] || 'NOT_FOUND';
+    res.status(200).json({
+        status: 'ok',
+        version: '2.0.0-diag',
+        db_target: maskedUrl,
+        node_env: process.env.NODE_ENV
+    });
 });
 
 // Public Routes
