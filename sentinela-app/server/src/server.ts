@@ -17,7 +17,7 @@ import linkedinRoutes from './routes/linkedin.routes';
 
 import { authRoutes } from './routes/auth.routes';
 import { authenticate } from './middlewares/auth.middleware';
-import { prisma } from './lib/prisma';
+// import { prisma } from './lib/prisma';
 
 console.log('--- Initializing Sentinela AI Server ---');
 console.log('Environment:', process.env.NODE_ENV);
