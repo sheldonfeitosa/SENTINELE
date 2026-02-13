@@ -1,18 +1,11 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PlusCircle, Linkedin } from 'lucide-react';
+import { apiService, API_BASE } from '../services/ApiService';
 import axios from 'axios';
 
 // We'll fetch directly or extend ApiService. For now, using axios directly for speed, 
-// but in a real app should be in ApiService.
-const fetchArticles = async () => {
-    // Assuming ApiService handles the base URL, but if not we can use relative path via proxy
-    // or fully qualified. For this MVP we'll assume relative triggers proxy or is on same domain.
-    // Actually, let's use the explicit backend URL 3001 if we know it.
-    // Or better, let's define a helper here.
-    const response = await axios.get('http://localhost:3001/api/articles');
-    return response.data;
-};
+// but pointing to the correct API_BASE.
 
 export const InsightsPage = () => {
     const [articles, setArticles] = useState<any[]>([]);

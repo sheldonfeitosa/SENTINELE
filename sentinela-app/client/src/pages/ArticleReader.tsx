@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Share2, ArrowLeft, Calendar, User, Tag } from 'lucide-react';
+import { API_BASE } from '../services/ApiService'; // Import API_BASE
+import { Share2, ArrowLeft, Calendar, User, Tag, Linkedin } from 'lucide-react';
 
 export const ArticleReader = () => {
     const { id } = useParams();
@@ -9,7 +10,7 @@ export const ArticleReader = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get(`http://localhost:3001/api/articles/${id}`)
+        axios.get(`${API_BASE}/articles/${id}`)
             .then(res => setArticle(res.data))
             .catch(err => console.error(err))
             .finally(() => setLoading(false));

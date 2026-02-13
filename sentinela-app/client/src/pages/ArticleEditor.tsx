@@ -1,5 +1,5 @@
-import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { apiService, API_BASE } from '../services/ApiService';
 import axios from 'axios';
 import { Save, Linkedin, Image as ImageIcon, Type, Tag } from 'lucide-react';
 
@@ -17,7 +17,7 @@ export const ArticleEditor = () => {
 
     const onSubmit = async (data: ArticleForm) => {
         try {
-            await axios.post('http://localhost:3001/api/articles', data);
+            await axios.post(`${API_BASE}/articles`, data); // Modified this line
             navigate('/insights');
         } catch (error) {
             console.error(error);

@@ -2,7 +2,8 @@ import axios from 'axios';
 import type { Notification } from './MockDataService'; // Reuse interface for now
 
 const isProduction = import.meta.env.PROD;
-const API_BASE = isProduction ? '/api' : 'http://localhost:3001/api';
+// In production, fallback to '/api' (relative) to use Vercel rewrites. In dev, use localhost.
+const API_BASE = import.meta.env.VITE_API_URL || (isProduction ? '/api' : 'http://localhost:3001/api');
 const API_URL = `${API_BASE}/notifications`;
 
 // Add Auth Interceptor
@@ -205,3 +206,4 @@ export interface Sector {
 }
 
 export const apiService = new ApiService();
+export { API_BASE };

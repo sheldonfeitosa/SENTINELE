@@ -1,6 +1,7 @@
-
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Bell, Send } from 'lucide-react';
+import { Bell, Send, X, Mic, StopCircle, Upload, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { apiService, API_BASE } from './services/ApiService';
 import axios from 'axios';
 
 type FormData = {
@@ -18,12 +19,19 @@ type FormData = {
     description: string;
 };
 
-export default function IncidentForm() {
-    const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<FormData>();
+const IncidentForm = ({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) => {
+    const { register, handleSubmit: rhfHandleSubmit, watch, formState: { errors, isSubmitting } } = useForm<FormData>();
     const sector = watch('sector');
     const notifySector = watch('notifySector');
 
+    const [step, setStep] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+
+    // ... (rest of state)
+
     const onSubmit = async (data: FormData) => {
+        setLoading(true); // Set loading state when submission starts
         try {
             // Handle "Outros" logic
             const finalData = {
@@ -32,11 +40,14 @@ export default function IncidentForm() {
                 notifySector: data.notifySector === 'Outros' ? data.notifySectorOther : data.notifySector,
             };
 
-            await axios.post('http://localhost:3001/api/notifications', finalData);
+            await axios.post(`${API_BASE}/notifications`, finalData);
             alert('Notificação enviada com sucesso!');
+            onSuccess(); // Call onSuccess if provided
         } catch (error) {
             console.error(error);
             alert('Erro ao enviar notificação.');
+        } finally {
+            setLoading(false); // Reset loading state after submission (success or failure)
         }
     };
 

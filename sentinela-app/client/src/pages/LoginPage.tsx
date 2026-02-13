@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { apiService, API_BASE } from '../services/ApiService'; // Import API_BASE
 import axios from 'axios';
-import { Lock, Mail, AlertCircle, CheckCircle2, ArrowRight, Star, ShieldCheck, Zap } from 'lucide-react';
+import {
+    LayoutDashboard, AlertCircle, CheckCircle2, ArrowRight, Star, ShieldCheck, Zap, Mail, Lock
+} from 'lucide-react';
 
 const LoginPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'login' | 'prospect'>('login');
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState('sheldonfeitosa@gmail.com');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -27,7 +30,7 @@ const LoginPage: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.post('http://localhost:3001/api/auth/login', {
+            const response = await axios.post(`${API_BASE}/auth/login`, {
                 email,
                 password
             });
@@ -62,8 +65,8 @@ const LoginPage: React.FC = () => {
             // I should change BOTH to be dynamic or relative.
 
             const apiUrl = import.meta.env.PROD
-                ? '/api/auth/trial-request'
-                : 'http://localhost:3001/api/auth/trial-request';
+                ? `${API_BASE}/auth/trial-request`
+                : `${API_BASE}/auth/trial-request`;
 
             const response = await axios.post(apiUrl, {
                 name: prospectName,

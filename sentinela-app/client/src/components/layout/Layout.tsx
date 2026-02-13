@@ -17,16 +17,29 @@ export function Layout() {
         navigate('/login');
     };
 
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     return (
         <div className="min-h-screen bg-[#F4F6F9] font-sans text-gray-800">
             <header className="bg-[#003366] text-white shadow-md">
                 <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 text-[#0ea5e9] font-bold text-2xl">S</div>
-                        <div>
-                            <h1 className="text-xl font-bold tracking-tight">SENTINELA AI</h1>
-                            <p className="text-xs text-gray-300">Sistema de Notificação e Gestão de Risco</p>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 text-[#0ea5e9] font-bold text-2xl">S</div>
+                            <div>
+                                <h1 className="text-xl font-bold tracking-tight">SENTINELA AI</h1>
+                                <p className="text-xs text-gray-300">Sistema de Notificação e Gestão de Risco</p>
+                            </div>
                         </div>
+
+                        {user.name && (
+                            <div className="hidden lg:flex items-center gap-2 pl-4 border-l border-white/20">
+                                <div className="text-left">
+                                    <p className="text-sm font-bold leading-none">{user.name}</p>
+                                    <p className="text-[10px] text-blue-300 uppercase tracking-wider">{user.tenant?.name || 'Hospital'}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <nav className="hidden md:flex gap-4 text-sm font-medium items-center">

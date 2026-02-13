@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { API_BASE } from '../services/ApiService'; // Import API_BASE
 
 export const LinkedinCallback = () => {
     const [searchParams] = useSearchParams();

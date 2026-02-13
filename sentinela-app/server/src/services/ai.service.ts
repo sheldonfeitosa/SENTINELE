@@ -14,10 +14,12 @@ export class AIService {
     private getGroqClient() {
         if (!this.groq) {
             const apiKey = process.env.GROQ_API_KEY;
+            console.log('AIService: Initializing Groq client...');
             if (!apiKey) {
-                console.warn('GROQ_API_KEY not found. AI features will be disabled.');
+                console.error('AIService ERROR: GROQ_API_KEY is missing from environment variables!');
                 return null;
             }
+            console.log('AIService: GROQ_API_KEY found, creating instance.');
             this.groq = new Groq({ apiKey });
         }
         return this.groq;
