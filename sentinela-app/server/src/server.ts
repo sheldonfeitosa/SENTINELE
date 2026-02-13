@@ -61,24 +61,11 @@ app.use((req, res, next) => {
     next();
 });
 
-// Simple Health Check (with DB status)
-app.get('/api/health', async (req, res) => {
-    const dbUrl = process.env.DATABASE_URL || '';
-    const maskedUrl = dbUrl.replace(/:([^@]+)@/, ':****@').split('@')[1] || 'NOT_FOUND';
-
-    let dbStatus = 'waiting';
-    try {
-        await prisma.$queryRaw`SELECT 1`;
-        dbStatus = 'connected';
-    } catch (e: any) {
-        dbStatus = `error: ${e.message}`;
-    }
-
+// Simple Health Check
+app.get('/api/health', (req, res) => {
     res.status(200).json({
         status: 'ok',
-        version: '2.0.1-prod',
-        db_target: maskedUrl,
-        db_status: dbStatus,
+        version: '2.0.2-minimal',
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
     });
