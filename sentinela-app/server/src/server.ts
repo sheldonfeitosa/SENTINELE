@@ -13,9 +13,9 @@ import { authRoutes } from './routes/auth.routes';
 import { authenticate } from './middlewares/auth.middleware';
 import { prisma } from './lib/prisma';
 
-/*
 import riskManagerRoutes from './routes/risk-manager.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+/*
 import webhookRoutes from './routes/webhook.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import articleRoutes from './routes/article.routes';
@@ -43,7 +43,7 @@ app.get('/api/health', async (req, res) => {
 
     res.status(200).json({
         status: 'ok',
-        version: '2.0.8-stable-rollback',
+        version: '2.0.9-managers-dash',
         db_status: dbStatus,
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
@@ -54,6 +54,10 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/sectors', sectorRoutes);
+
+// Re-enabling protected routes
+app.use('/api/managers', authenticate, riskManagerRoutes);
+app.use('/api/dashboard', authenticate, dashboardRoutes);
 
 app.get('/', (req, res) => {
     res.send('Sentinela AI API is running - STABLE-RESTORE');
