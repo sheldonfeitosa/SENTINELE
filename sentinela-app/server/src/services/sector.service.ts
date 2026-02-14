@@ -7,16 +7,16 @@ export class SectorService {
         this.repository = new SectorRepository();
     }
 
-    async getAllSectors() {
-        return this.repository.findAll();
+    async getAllSectors(tenantId: string) {
+        return this.repository.findAll(tenantId);
     }
 
-    async createSector(name: string) {
+    async createSector(tenantId: string, name: string) {
         if (!name) throw new Error('Sector name is required');
-        return this.repository.create(name);
+        return this.repository.create(tenantId, name);
     }
 
-    async deleteSector(id: number) {
-        return this.repository.delete(id);
+    async deleteSector(id: number, tenantId: string) {
+        return this.repository.delete(id, tenantId);
     }
 }

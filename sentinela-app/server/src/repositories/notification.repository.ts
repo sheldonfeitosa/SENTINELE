@@ -2,42 +2,50 @@ import { Incident } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
 export class NotificationRepository {
-    async create(data: Omit<Incident, 'id' | 'createdAt' | 'status'>) {
+    async create(tenantId: string, data: Omit<Incident, 'id' | 'createdAt' | 'status' | 'tenantId'>) {
         return prisma.incident.create({
-            data,
+            data: {
+                ...data,
+                tenantId
+            },
         });
     }
 
-    async findAll() {
+    async findAll(tenantId: string) {
         return prisma.incident.findMany({
+            where: { tenantId },
             orderBy: {
                 createdAt: 'desc'
             }
         });
     }
 
-    async update(id: number, data: Partial<Incident>) {
+    async update(id: number, tenantId: string, data: Partial<Incident>) {
         return prisma.incident.update({
-            where: { id },
+            where: { id, tenantId },
             data
         });
     }
 
-    async findById(id: number) {
-        return prisma.incident.findUnique({
-            where: { id }
+    async findById(id: number, tenantId?: string) {
+        return prisma.incident.findFirst({
+            where: {
+                id,
+                ...(tenantId ? { tenantId } : {})
+            }
         });
     }
 
-    async findSimilarResolved(eventType: string, limit: number = 3) {
+    async findSimilarResolved(tenantId: string, eventType: string, limit: number = 3) {
         return prisma.incident.findMany({
             where: {
+                tenantId,
                 status: 'CONCLUIDO',
                 OR: [
                     { type: { contains: eventType } },
                     { eventTypeAi: { contains: eventType } }
                 ],
-                rootCause: { not: null }, // Ensure it has useful content
+                rootCause: { not: null },
                 actionPlan: { not: null }
             },
             take: limit,

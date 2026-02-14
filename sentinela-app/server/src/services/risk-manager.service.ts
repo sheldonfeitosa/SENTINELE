@@ -18,20 +18,15 @@ export class RiskManagerService {
         }
     }
 
-    async createManager(data: any) {
-        // Prepare data for User model
-        // Hash password if provided, or set default? 
-        // For now, if we are creating managers via this service, we might need a default password or passed password.
-        // Assuming data.password exists or we generate a placeholder.
+    async createManager(tenantId: string, data: any) {
         const passwordHash = await bcrypt.hash(data.password || 'mudar123', 10);
 
-        const manager = await this.repository.create({
+        const manager = await this.repository.create(tenantId, {
             name: data.name,
             email: data.email,
-            role: data.role || 'TENANT_ADMIN', // Default role
+            role: data.role || 'TENANT_ADMIN',
             sectors: JSON.stringify(data.sectors || []),
-            password: passwordHash,
-            tenantId: data.tenantId // Must be provided
+            password: passwordHash
         });
 
         return {
@@ -48,8 +43,8 @@ export class RiskManagerService {
         }));
     }
 
-    async getManagerById(id: number) {
-        const manager = await this.repository.findById(id);
+    async getManagerById(id: number, tenantId: string) {
+        const manager = await this.repository.findById(id, tenantId);
         if (!manager) return null;
         return {
             ...manager,
@@ -57,26 +52,25 @@ export class RiskManagerService {
         };
     }
 
-    async updateManager(id: number, data: any) {
+    async updateManager(id: number, tenantId: string, data: any) {
         const updateData: any = {};
         if (data.name) updateData.name = data.name;
         if (data.email) updateData.email = data.email;
         if (data.role) updateData.role = data.role;
         if (data.sectors) updateData.sectors = JSON.stringify(data.sectors);
 
-        // Handle password update if needed
         if (data.password) {
             updateData.password = await bcrypt.hash(data.password, 10);
         }
 
-        const manager = await this.repository.update(id, updateData);
+        const manager = await this.repository.update(id, tenantId, updateData);
         return {
             ...manager,
             sectors: this.safeParseSectors(manager.sectors)
         };
     }
 
-    async deleteManager(id: number) {
-        return this.repository.delete(id);
+    async deleteManager(id: number, tenantId: string) {
+        return this.repository.delete(id, tenantId);
     }
 }

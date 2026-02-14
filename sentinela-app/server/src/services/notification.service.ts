@@ -18,7 +18,7 @@ export class NotificationService {
         this.riskManagerRepo = new RiskManagerRepository();
     }
 
-    async createNotification(data: any) {
+    async createNotification(data: any, authTenantId?: string) {
         // 1. Analyze with AI
         let aiResult = {
             eventType: 'EM ANÁLISE',
@@ -31,41 +31,39 @@ export class NotificationService {
             const result = await this.aiService.analyzeIncident(data.descricao);
             aiResult = {
                 eventType: result.eventType || 'EM ANÁLISE',
-                riskLevel: result.riskLevel || 'MODERADO', // Fix: Ensure strictly 'LEVE' | 'MODERADO' | ... if needed, but string is okay for now mostly
+                riskLevel: result.riskLevel || 'MODERADO',
                 recommendation: result.recommendation || 'Análise concluída sem recomendação específica.'
             };
         } catch (error) {
             console.error('Falha na análise da IA:', error);
         }
 
-        // SaaS: Get Default Tenant for public reporting
-        let tenantId = data.tenantId;
+        // SaaS: Determine Tenant
+        let tenantId = authTenantId;
 
-        // SaaS: Resolve Tenant by Slug if provided
-        if (!tenantId && data.tenantSlug) {
-            console.log(`Resolving tenant slug: ${data.tenantSlug}`);
-            const tenant = await prisma.tenant.findUnique({ where: { slug: data.tenantSlug } });
-            if (tenant) {
-                tenantId = tenant.id;
-                console.log(`Resolved to Tenant ID: ${tenantId}`);
-            } else {
-                console.warn(`Tenant slug '${data.tenantSlug}' not found.`);
-            }
-        }
-
-        // Fallback: Find first tenant (Legacy/Demo support)
+        // If not authenticated (anonymous report), try to resolve from slug or fallback
         if (!tenantId) {
-            const defaultTenant = await prisma.tenant.findFirst();
-            if (defaultTenant) {
-                tenantId = defaultTenant.id;
-                console.log(`Using default tenant: ${defaultTenant.name}`);
+            if (data.tenantSlug) {
+                console.log(`Resolving tenant slug: ${data.tenantSlug}`);
+                const tenant = await prisma.tenant.findUnique({ where: { slug: data.tenantSlug } });
+                if (tenant) {
+                    tenantId = tenant.id;
+                    console.log(`Resolved to Tenant ID: ${tenantId}`);
+                }
+            }
+
+            // Fallback for public reporting if no slug (Demo support) - but ideally every report should have a tenant context
+            if (!tenantId) {
+                const defaultTenant = await prisma.tenant.findFirst();
+                if (defaultTenant) {
+                    tenantId = defaultTenant.id;
+                }
             }
         }
 
         if (!tenantId) throw new Error('System configuration error: No active tenant context found.');
 
         const incidentData = {
-            tenantId: tenantId,
             eventTypeAi: aiResult.eventType,
             riskLevel: data.tipo_notificacao === 'NÃO CONFORMIDADE' ? 'NA' : (aiResult.riskLevel as any),
             aiAnalysis: aiResult.recommendation,
@@ -81,7 +79,6 @@ export class NotificationService {
             type: data.tipo_notificacao || data.type,
             description: sanitizeHtml(data.descricao || data.description),
             reporterEmail: data.email_relator || data.reporterEmail || null,
-            // Action Plan Defaults
             rootCause: null,
             actionPlan: null,
             actionPlanStatus: 'NOT_STARTED',
@@ -90,45 +87,38 @@ export class NotificationService {
             investigationList: null
         };
 
-        const createdNotification = await this.repository.create(incidentData);
+        const createdNotification = await this.repository.create(tenantId, incidentData);
 
-        // 3. Automate Emails
+        // 3. Automate Emails (Scoped to Tenant)
         try {
-            // A. Find Sector Manager
-            const targetSector = data.setor_notificado || data.setor; // Prefer notified sector
-            const sectorManager = await this.riskManagerRepo.findBySector(targetSector);
+            const targetSector = data.setor_notificado || data.setor;
+            const sectorManager = await this.riskManagerRepo.findBySector(targetSector, tenantId);
 
-            // B. Send Action Request if Manager Found
             if (sectorManager) {
-                console.log(`[Flow] Manager found for sector ${targetSector}: ${sectorManager.email}`);
                 await this.emailService.sendActionRequest(createdNotification, sectorManager.email);
-            } else {
-                console.warn(`[Flow] No manager found for sector: ${targetSector}`);
             }
 
-            // C. Always Notify Risk Manager
-            const riskManagerEmail = process.env.RISK_MANAGER_EMAIL || 'qualidadeinmceb@gmail.com';
+            const riskManagerEmail = process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br';
             await this.emailService.sendIncidentNotification(createdNotification, riskManagerEmail);
 
         } catch (emailError) {
             console.error('[Flow] Error sending automated emails:', emailError);
-            // Don't block creation if email fails
         }
 
         return createdNotification;
     }
 
-    async getAllNotifications() {
-        return this.repository.findAll();
+    async getAllNotifications(tenantId: string) {
+        return this.repository.findAll(tenantId);
     }
 
-    async getNotificationById(id: number) {
-        return this.repository.findById(id);
+    async getNotificationById(id: number, tenantId: string) {
+        return this.repository.findById(id, tenantId);
     }
 
-    async updateNotification(id: number, data: any) {
+    async updateNotification(id: number, tenantId: string, data: any) {
         const updateData: any = {};
-        const currentNotification = await this.repository.findById(id);
+        const currentNotification = await this.repository.findById(id, tenantId);
 
         if (!currentNotification) throw new Error('Notification not found');
 
@@ -174,11 +164,11 @@ export class NotificationService {
         if (data.actionPlanDeadline) updateData.actionPlanDeadline = data.actionPlanDeadline;
         if (data.investigationList) updateData.investigationList = data.investigationList;
 
-        return this.repository.update(id, updateData);
+        return this.repository.update(id, tenantId, updateData);
     }
 
-    async startActionPlan(id: number, customDeadline?: Date) {
-        const notification = await this.repository.findById(id);
+    async startActionPlan(id: number, tenantId: string, customDeadline?: Date) {
+        const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
         const riskLevel = notification.riskLevel || 'MODERADO';
@@ -208,11 +198,11 @@ export class NotificationService {
             actionPlanDeadline: deadline
         };
 
-        return this.repository.update(id, updateData);
+        return this.repository.update(id, tenantId, updateData);
     }
 
-    async reanalyzeIncident(id: number) {
-        const notification = await this.repository.findById(id);
+    async reanalyzeIncident(id: number, tenantId: string) {
+        const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
         console.log(`Re-analyzing incident #${id}...`);
@@ -225,11 +215,11 @@ export class NotificationService {
             aiAnalysis: aiResult.recommendation
         };
 
-        return this.repository.update(id, updateData);
+        return this.repository.update(id, tenantId, updateData);
     }
 
-    async generateRCA(id: number) {
-        const notification = await this.repository.findById(id);
+    async generateRCA(id: number, tenantId: string) {
+        const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
         const description = notification.description;
@@ -239,8 +229,8 @@ export class NotificationService {
         return this.aiService.generateRootCauseAnalysis(description, eventType, investigationData);
     }
 
-    async generateFiveWhys(id: number) {
-        const notification = await this.repository.findById(id);
+    async generateFiveWhys(id: number, tenantId: string) {
+        const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
         return this.aiService.generateFiveWhys(notification.description);
@@ -248,20 +238,20 @@ export class NotificationService {
 
     // New Methods for Email Workflow
 
-    async forwardToSector(id: number, sectorManagerEmail: string) {
-        const incident = await this.repository.findById(id);
+    async forwardToSector(id: number, tenantId: string, sectorManagerEmail: string) {
+        const incident = await this.repository.findById(id, tenantId);
         if (!incident) throw new Error('Incident not found');
 
         await this.emailService.sendActionRequest(incident, sectorManagerEmail);
         return { message: 'Email forwarded to sector manager' };
     }
 
-    async notifyHighManagement(id: number) {
-        const incident = await this.repository.findById(id);
+    async notifyHighManagement(id: number, tenantId: string) {
+        const incident = await this.repository.findById(id, tenantId);
         if (!incident) throw new Error('Incident not found');
 
-        // Find managers with role ALTA_GESTAO
-        const managers = await this.riskManagerRepo.findAll();
+        // Find managers for the specific tenant
+        const managers = await this.riskManagerRepo.findAll(tenantId);
         const highManagementEmails = managers
             .filter(m => m.role === 'ALTA_GESTAO')
             .map(m => m.email);
@@ -274,39 +264,28 @@ export class NotificationService {
         return { message: 'High Management notified' };
     }
 
-    async checkOverdueTratativas() {
-        // Logic to find incidents created > 5 days ago without action plan
-        // This requires checking the 'status' or a specific 'actionPlan' field.
-        // Assuming 'status' != 'Concluído' implies pending.
-
+    async checkOverdueTratativas(tenantId: string) {
         const fiveDaysAgo = new Date();
         fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
 
-        const allIncidents = await this.repository.findAll();
+        const allIncidents = await this.repository.findAll(tenantId);
         const overdue = allIncidents.filter(i =>
             i.status !== 'Concluído' &&
             new Date(i.createdAt) < fiveDaysAgo
         );
 
-        const admins = await this.riskManagerRepo.findAll();
+        const admins = await this.riskManagerRepo.findAll(tenantId);
         const riskManagerEmail = admins.find(m => m.role === 'ADMIN')?.email || process.env.RISK_MANAGER_EMAIL || 'risk.manager@hospital.com';
 
         for (const incident of overdue) {
-            // We need to know WHO is the sector manager. 
-            // Since we don't store the forwarded email in the DB in this simple schema,
-            // we might have to skip or send to a generic sector email if available.
-            // For this demo, we'll assume we can't send unless we stored the forwardedTo.
-            // But the requirement says "if the manager sends tratativa in time...".
-            // Let's just log for now or send to the notifySector if it maps to an email.
-            console.log(`Overdue incident #${incident.id}`);
-            // await this.emailService.sendOverdueWarning(incident, 'sector@hospital.com', riskManagerEmail);
+            console.log(`Overdue incident #${incident.id} for tenant ${tenantId}`);
         }
 
         return { overdueCount: overdue.length };
     }
 
-    async chatWithAI(id: number, message: string, context?: any) {
-        const notification = await this.repository.findById(id);
+    async chatWithAI(id: number, tenantId: string, message: string, context?: any) {
+        const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
         return this.aiService.chatWithContext(message, {
@@ -314,8 +293,8 @@ export class NotificationService {
             notification: notification
         });
     }
-    async contactRiskManager(id: number, message: string, requesterEmail?: string) {
-        const notification = await this.repository.findById(id);
+    async contactRiskManager(id: number, tenantId: string, message: string, requesterEmail?: string) {
+        const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
         const riskManagerEmail = process.env.RISK_MANAGER_EMAIL || 'admin@sentinela.ai';
@@ -335,15 +314,15 @@ export class NotificationService {
         return { message: 'Email sent to Risk Manager' };
     }
 
-    async approveDeadline(id: number, newDeadline: Date) {
-        const notification = await this.repository.findById(id);
+    async approveDeadline(id: number, tenantId: string, newDeadline: Date) {
+        const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
         // Update deadline
-        await this.repository.update(id, { actionPlanDeadline: newDeadline });
+        await this.repository.update(id, tenantId, { actionPlanDeadline: newDeadline });
 
-        // Find sector manager
-        const managers = await this.riskManagerRepo.findAll();
+        // Find sector manager for this tenant
+        const managers = await this.riskManagerRepo.findAll(tenantId);
         // Simple check: if manager's sectors string includes the notified sector
         const sectorManager = managers.find(m => m.sectors.includes(notification.notifySector) && m.role === 'GESTOR_SETOR');
 
@@ -356,12 +335,12 @@ export class NotificationService {
         return { message: 'Deadline approved and email sent' };
     }
 
-    async rejectDeadline(id: number) {
-        const notification = await this.repository.findById(id);
+    async rejectDeadline(id: number, tenantId: string) {
+        const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
-        // Find sector manager
-        const managers = await this.riskManagerRepo.findAll();
+        // Find sector manager for this tenant
+        const managers = await this.riskManagerRepo.findAll(tenantId);
         const sectorManager = managers.find(m => m.sectors.includes(notification.notifySector) && m.role === 'GESTOR_SETOR');
 
         if (sectorManager) {

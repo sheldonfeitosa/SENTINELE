@@ -10,7 +10,8 @@ export class SectorController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            const sectors = await this.service.getAllSectors();
+            const tenantId = (req as any).user.tenantId;
+            const sectors = await this.service.getAllSectors(tenantId);
             res.json(sectors);
         } catch (error: any) {
             res.status(500).json({ error: 'Failed to fetch sectors' });
@@ -20,7 +21,8 @@ export class SectorController {
     create = async (req: Request, res: Response) => {
         try {
             const { name } = req.body;
-            const sector = await this.service.createSector(name);
+            const tenantId = (req as any).user.tenantId;
+            const sector = await this.service.createSector(tenantId, name);
             res.status(201).json(sector);
         } catch (error: any) {
             if (error.code === 'P2002') {
@@ -34,7 +36,8 @@ export class SectorController {
     delete = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            await this.service.deleteSector(id);
+            const tenantId = (req as any).user.tenantId;
+            await this.service.deleteSector(id, tenantId);
             res.status(204).send();
         } catch (error: any) {
             res.status(500).json({ error: 'Failed to delete sector' });

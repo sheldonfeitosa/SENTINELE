@@ -1,28 +1,28 @@
 import { prisma } from '../lib/prisma';
 
 export class SectorRepository {
-    async findAll() {
+    async findAll(tenantId: string) {
         return prisma.sector.findMany({
+            where: { tenantId },
             orderBy: { name: 'asc' }
         });
     }
 
-    async create(name: string) {
-        // SaaS: We need to know which tenant. For MVP/Demo, pick the first one.
-        const defaultTenant = await prisma.tenant.findFirst();
-        if (!defaultTenant) throw new Error('No tenant configured');
-
+    async create(tenantId: string, name: string) {
         return prisma.sector.create({
             data: {
                 name,
-                tenantId: defaultTenant.id
+                tenantId: tenantId
             }
         });
     }
 
-    async delete(id: number) {
+    async delete(id: number, tenantId: string) {
         return prisma.sector.delete({
-            where: { id }
+            where: {
+                id,
+                tenantId
+            }
         });
     }
 }

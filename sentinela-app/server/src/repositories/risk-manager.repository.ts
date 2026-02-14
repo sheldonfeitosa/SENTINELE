@@ -2,44 +2,46 @@ import { Incident, User } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
 export class RiskManagerRepository {
-    async create(data: any) {
+    async create(tenantId: string, data: any) {
         return prisma.user.create({
-            data,
+            data: {
+                ...data,
+                tenantId
+            },
         });
     }
 
-    async findAll(tenantId?: string) {
+    async findAll(tenantId: string) {
         return prisma.user.findMany({
-            where: tenantId ? { tenantId } : {},
+            where: { tenantId },
             orderBy: {
                 name: 'asc'
             }
         });
     }
 
-    async findById(id: number) {
-        return prisma.user.findUnique({
-            where: { id }
+    async findById(id: number, tenantId: string) {
+        return prisma.user.findFirst({
+            where: { id, tenantId }
         });
     }
 
-    async update(id: number, data: Partial<User>) {
+    async update(id: number, tenantId: string, data: Partial<User>) {
         return prisma.user.update({
-            where: { id },
+            where: { id, tenantId },
             data
         });
     }
 
-    async delete(id: number) {
+    async delete(id: number, tenantId: string) {
         return prisma.user.delete({
-            where: { id }
+            where: { id, tenantId }
         });
     }
 
-    async findBySector(sector: string) {
-        // Since sectors are stored as JSON string or comma-separated, we need to fetch all and filter in app
-        // Ideally, this should be normalized in DB, but for now we handle it here.
-        const allUsers = await this.findAll();
+    async findBySector(sector: string, tenantId: string) {
+        // Since sectors are stored as JSON string or comma-separated, we need to fetch all for the tenant and filter in app
+        const allUsers = await this.findAll(tenantId);
 
         return allUsers.find(user => {
             if (!user.sectors) return false;

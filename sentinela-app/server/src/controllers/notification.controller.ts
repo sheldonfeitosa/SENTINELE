@@ -11,7 +11,8 @@ export class NotificationController {
     create = async (req: Request, res: Response) => {
         try {
             const data = req.body;
-            const incident = await this.service.createNotification(data);
+            const authTenantId = (req as any).user?.tenantId;
+            const incident = await this.service.createNotification(data, authTenantId);
             res.status(201).json(incident);
         } catch (error: any) {
             console.error('CONTROLLER ERROR:', error.message);
@@ -21,7 +22,8 @@ export class NotificationController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            const notifications = await this.service.getAllNotifications();
+            const tenantId = (req as any).user.tenantId;
+            const notifications = await this.service.getAllNotifications(tenantId);
             res.json(notifications);
         } catch (error) {
             console.error(error);
@@ -32,7 +34,8 @@ export class NotificationController {
     getById = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const notification = await this.service.getNotificationById(id);
+            const tenantId = (req as any).user.tenantId;
+            const notification = await this.service.getNotificationById(id, tenantId);
 
             if (!notification) {
                 res.status(404).json({ error: 'Notification not found' });
@@ -49,8 +52,9 @@ export class NotificationController {
     update = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
+            const tenantId = (req as any).user.tenantId;
             const data = req.body;
-            const incident = await this.service.updateNotification(id, data);
+            const incident = await this.service.updateNotification(id, tenantId, data);
             res.json(incident);
         } catch (error: any) {
             console.error('UPDATE ERROR:', error.message);
@@ -61,7 +65,8 @@ export class NotificationController {
     generateRCA = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const rca = await this.service.generateRCA(id);
+            const tenantId = (req as any).user.tenantId;
+            const rca = await this.service.generateRCA(id, tenantId);
             res.json(rca);
         } catch (error: any) {
             console.error('RCA ERROR:', error.message);
@@ -72,7 +77,8 @@ export class NotificationController {
     generateFiveWhys = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const result = await this.service.generateFiveWhys(id);
+            const tenantId = (req as any).user.tenantId;
+            const result = await this.service.generateFiveWhys(id, tenantId);
             res.json(result);
         } catch (error: any) {
             console.error('5 WHYS ERROR:', error.message);
@@ -81,11 +87,10 @@ export class NotificationController {
     };
 
     reanalyze = async (req: Request, res: Response) => {
-        console.log('Controller: reanalyze called for id:', req.params.id);
         try {
             const id = parseInt(req.params.id);
-            const result = await this.service.reanalyzeIncident(id);
-            console.log('Controller: reanalyze success');
+            const tenantId = (req as any).user.tenantId;
+            const result = await this.service.reanalyzeIncident(id, tenantId);
             res.json(result);
         } catch (error: any) {
             console.error('REANALYZE ERROR:', error.message);
@@ -98,12 +103,13 @@ export class NotificationController {
     forwardToSector = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
+            const tenantId = (req as any).user.tenantId;
             const { email } = req.body;
             if (!email) {
                 res.status(400).json({ error: 'Email is required' });
                 return;
             }
-            const result = await this.service.forwardToSector(id, email);
+            const result = await this.service.forwardToSector(id, tenantId, email);
             res.json(result);
         } catch (error: any) {
             console.error('FORWARD ERROR:', error.message);
@@ -114,7 +120,8 @@ export class NotificationController {
     notifyHighManagement = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const result = await this.service.notifyHighManagement(id);
+            const tenantId = (req as any).user.tenantId;
+            const result = await this.service.notifyHighManagement(id, tenantId);
             res.json(result);
         } catch (error: any) {
             console.error('HIGH MANAGEMENT ERROR:', error.message);
@@ -125,8 +132,9 @@ export class NotificationController {
     startActionPlan = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
+            const tenantId = (req as any).user.tenantId;
             const { deadline } = req.body;
-            const result = await this.service.startActionPlan(id, deadline ? new Date(deadline) : undefined);
+            const result = await this.service.startActionPlan(id, tenantId, deadline ? new Date(deadline) : undefined);
             res.json(result);
         } catch (error: any) {
             console.error('START ACTION PLAN ERROR:', error.message);
@@ -137,8 +145,9 @@ export class NotificationController {
     chat = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
+            const tenantId = (req as any).user.tenantId;
             const { message, context } = req.body;
-            const result = await this.service.chatWithAI(id, message, context);
+            const result = await this.service.chatWithAI(id, tenantId, message, context);
             res.json({ message: result });
         } catch (error: any) {
             console.error('CHAT ERROR:', error.message);
@@ -148,8 +157,9 @@ export class NotificationController {
     contactRiskManager = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
+            const tenantId = (req as any).user.tenantId;
             const { message, requesterEmail } = req.body;
-            const result = await this.service.contactRiskManager(id, message, requesterEmail);
+            const result = await this.service.contactRiskManager(id, tenantId, message, requesterEmail);
             res.json(result);
         } catch (error: any) {
             console.error('CONTACT RISK MANAGER ERROR:', error.message);
@@ -160,12 +170,13 @@ export class NotificationController {
     approveDeadline = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
+            const tenantId = (req as any).user.tenantId;
             const { deadline } = req.body;
             if (!deadline) {
                 res.status(400).json({ error: 'Deadline is required' });
                 return;
             }
-            const result = await this.service.approveDeadline(id, new Date(deadline));
+            const result = await this.service.approveDeadline(id, tenantId, new Date(deadline));
             res.json(result);
         } catch (error: any) {
             console.error('APPROVE DEADLINE ERROR:', error.message);
@@ -176,7 +187,8 @@ export class NotificationController {
     rejectDeadline = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const result = await this.service.rejectDeadline(id);
+            const tenantId = (req as any).user.tenantId;
+            const result = await this.service.rejectDeadline(id, tenantId);
             res.json(result);
         } catch (error: any) {
             console.error('REJECT DEADLINE ERROR:', error.message);
