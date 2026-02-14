@@ -12,6 +12,7 @@ import { PricingPage } from './pages/PricingPage';
 import SuccessPage from './pages/SuccessPage';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import { AdminDashboard } from './pages/AdminDashboard';
 
 
 
@@ -79,6 +80,12 @@ function App() {
             <Route path="success" element={
               <ProtectedRoute>
                 <SuccessPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="admin" element={
+              <ProtectedRoute>
+                <AdminDashboard />
               </ProtectedRoute>
             } />
 

@@ -60,7 +60,7 @@ export function NotificationForm() {
     React.useEffect(() => {
         const loadSectors = async () => {
             try {
-                const data = await apiService.getSectors();
+                const data = await apiService.getSectors(tenantSlug);
                 setSectors(data);
             } catch (error) {
                 console.error('Failed to load sectors', error);

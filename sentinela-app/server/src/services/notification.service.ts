@@ -49,15 +49,11 @@ export class NotificationService {
                 if (tenant) {
                     tenantId = tenant.id;
                     console.log(`Resolved to Tenant ID: ${tenantId}`);
+                } else {
+                    throw new Error(`Hospital não encontrado: ${data.tenantSlug}`);
                 }
-            }
-
-            // Fallback for public reporting if no slug (Demo support) - but ideally every report should have a tenant context
-            if (!tenantId) {
-                const defaultTenant = await prisma.tenant.findFirst();
-                if (defaultTenant) {
-                    tenantId = defaultTenant.id;
-                }
+            } else {
+                throw new Error('Identificação do hospital ausente. Por favor, use o link correto da sua instituição.');
             }
         }
 

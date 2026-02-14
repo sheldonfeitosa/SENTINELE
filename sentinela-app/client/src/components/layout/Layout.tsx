@@ -1,6 +1,6 @@
 
 import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
-import { PlusCircle, Activity, Users, BarChart2, ClipboardList, CreditCard, LogOut } from 'lucide-react';
+import { PlusCircle, Activity, Users, BarChart2, ClipboardList, CreditCard, LogOut, ShieldCheck } from 'lucide-react';
 
 export function Layout() {
     const navigate = useNavigate();
@@ -36,7 +36,9 @@ export function Layout() {
                             <div className="hidden lg:flex items-center gap-2 pl-4 border-l border-white/20">
                                 <div className="text-left">
                                     <p className="text-sm font-bold leading-none">{user.name}</p>
-                                    <p className="text-[10px] text-blue-300 uppercase tracking-wider">{user.tenant?.name || 'Hospital'}</p>
+                                    <p className="text-[10px] text-blue-300 uppercase tracking-wider">
+                                        {user.role === 'SUPER_ADMIN' ? 'ADMINISTRAÇÃO' : (user.tenant?.name || 'Hospital')}
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -46,30 +48,52 @@ export function Layout() {
                         {/* Protected Links */}
                         {localStorage.getItem('token') && (
                             <>
-                                <Link to="/notificacao" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                    <PlusCircle className="w-4 h-4" />
-                                    Nova Notificação
-                                </Link>
-                                <Link to="/gestao-risco" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                    <Activity className="w-4 h-4" />
-                                    Gestão de Risco
-                                </Link>
-                                <Link to="/gestores" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                    <Users className="w-4 h-4" />
-                                    Painel dos Gestores
-                                </Link>
-                                <Link to="/estatisticas" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                    <BarChart2 className="w-4 h-4" />
-                                    Estatísticas
-                                </Link>
-                                <Link to="/tratativa" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                    <ClipboardList className="w-4 h-4" />
-                                    Tratativa
-                                </Link>
-                                <Link to="/planos" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                    <CreditCard className="w-4 h-4" />
-                                    Planos
-                                </Link>
+                                {location.pathname.startsWith('/admin') ? (
+                                    <>
+                                        <Link to="/gestao-risco" className="flex items-center gap-2 text-blue-300 hover:text-white transition-colors">
+                                            <Activity className="w-4 h-4" />
+                                            Voltar para o Sistema
+                                        </Link>
+                                        <div className="h-6 w-px bg-white/20 mx-2"></div>
+                                        <span className="flex items-center gap-2 text-orange-400 font-bold">
+                                            <ShieldCheck className="w-4 h-4" />
+                                            Painel Administrativo SaaS
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Link to="/notificacao" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                            <PlusCircle className="w-4 h-4" />
+                                            Nova Notificação
+                                        </Link>
+                                        <Link to="/gestao-risco" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                            <Activity className="w-4 h-4" />
+                                            Gestão de Risco
+                                        </Link>
+                                        <Link to="/gestores" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                            <Users className="w-4 h-4" />
+                                            Painel dos Gestores
+                                        </Link>
+                                        <Link to="/estatisticas" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                            <BarChart2 className="w-4 h-4" />
+                                            Estatísticas
+                                        </Link>
+                                        <Link to="/tratativa" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                            <ClipboardList className="w-4 h-4" />
+                                            Tratativa
+                                        </Link>
+                                        <Link to="/planos" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                            <CreditCard className="w-4 h-4" />
+                                            Planos
+                                        </Link>
+                                        {user.role === 'SUPER_ADMIN' && (
+                                            <Link to="/admin" className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors font-bold border-l border-white/20 pl-4 ml-2">
+                                                <ShieldCheck className="w-4 h-4" />
+                                                Painel SaaS
+                                            </Link>
+                                        )}
+                                    </>
+                                )}
                                 <div className="h-6 w-px bg-white/20 mx-2"></div>
                                 <button
                                     onClick={handleLogout}

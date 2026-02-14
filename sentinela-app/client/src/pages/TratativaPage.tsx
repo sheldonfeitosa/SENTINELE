@@ -39,7 +39,7 @@ export function TratativaPage() {
     const [deferralLoading, setDeferralLoading] = useState(false);
     const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [hospitalName, setHospitalName] = useState('INMCEB');
+    const [hospitalName, setHospitalName] = useState('Hospital');
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {

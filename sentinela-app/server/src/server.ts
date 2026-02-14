@@ -19,6 +19,7 @@ import articleRoutes from './routes/article.routes';
 import linkedinRoutes from './routes/linkedin.routes';
 import webhookRoutes from './routes/webhook.routes';
 import subscriptionRoutes from './routes/subscription.routes';
+import adminRoutes from './routes/admin.routes';
 
 console.log('--- Initializing Sentinela AI Server ---');
 
@@ -66,6 +67,8 @@ app.use('/api/linkedin', linkedinRoutes);
 console.log('Mounting /api/subscription routes...');
 app.use('/api/subscription', authenticate, subscriptionRoutes);
 console.log('Mounted /api/subscription routes.');
+
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
     res.send('Sentinela AI API is running - STABLE-RESTORE');

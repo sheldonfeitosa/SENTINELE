@@ -170,8 +170,10 @@ class ApiService {
     }
 
     // Sector Methods
-    async getSectors(): Promise<Sector[]> {
-        const response = await axios.get(`${API_BASE}/sectors`);
+    async getSectors(tenantSlug?: string): Promise<Sector[]> {
+        const response = await axios.get(`${API_BASE}/sectors`, {
+            params: { tenantSlug }
+        });
         return response.data;
     }
 
@@ -188,6 +190,39 @@ class ApiService {
     async getDashboardStats(): Promise<any> {
         const response = await axios.get(`${API_BASE}/dashboard/stats`);
         return response.data;
+    }
+
+    // Admin Methods
+    async getAdminTenants(): Promise<any[]> {
+        const response = await axios.get(`${API_BASE}/admin/tenants`);
+        return response.data;
+    }
+
+    async getAdminIncidents(): Promise<any[]> {
+        const response = await axios.get(`${API_BASE}/admin/incidents`);
+        return response.data;
+    }
+
+    async getAdminStats(): Promise<any> {
+        const response = await axios.get(`${API_BASE}/admin/stats`);
+        return response.data;
+    }
+
+    async getAdminTenantsDetailed(): Promise<any[]> {
+        const response = await axios.get(`${API_BASE}/admin/tenants-detailed`);
+        return response.data;
+    }
+
+    async adminResetPassword(userId: number, newPassword: string): Promise<void> {
+        await axios.post(`${API_BASE}/admin/reset-password`, { userId, newPassword });
+    }
+
+    async adminUpdateDeadline(incidentId: number, newDeadline: Date): Promise<void> {
+        await axios.put(`${API_BASE}/admin/update-deadline`, { incidentId, newDeadline });
+    }
+
+    async adminUpdateSubscription(tenantId: string, status: string, periodEnd?: Date): Promise<void> {
+        await axios.put(`${API_BASE}/admin/update-subscription`, { tenantId, status, periodEnd });
     }
 }
 

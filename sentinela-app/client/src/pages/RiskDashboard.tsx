@@ -25,7 +25,7 @@ export function RiskDashboard() {
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [highlightedId, setHighlightedId] = useState<number | null>(null);
     const [reanalyzingId, setReanalyzingId] = useState<number | null>(null);
-    const [hospitalName, setHospitalName] = useState('INMCEB');
+    const [hospitalName, setHospitalName] = useState('Hospital');
 
     // Email Modal State
     const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -45,6 +45,8 @@ export function RiskDashboard() {
                 const user = JSON.parse(userStr);
                 if (user.tenant?.name) {
                     setHospitalName(user.tenant.name);
+                } else {
+                    setHospitalName('Hospital Geral');
                 }
             } catch (e) {
                 console.error('Failed to parse user data');

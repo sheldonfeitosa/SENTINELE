@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { SectorService } from '../services/sector.service';
+import { prisma } from '../lib/prisma';
 
 export class SectorController {
     private service: SectorService;
@@ -10,7 +11,20 @@ export class SectorController {
 
     getAll = async (req: Request, res: Response) => {
         try {
-            const tenantId = (req as any).user.tenantId;
+            let tenantId = (req as any).user?.tenantId;
+            const { tenantSlug } = req.query;
+
+            if (!tenantId && tenantSlug) {
+                const tenant = await prisma.tenant.findUnique({ where: { slug: String(tenantSlug) } });
+                if (tenant) {
+                    tenantId = tenant.id;
+                }
+            }
+
+            if (!tenantId) {
+                return res.status(401).json({ error: 'Tenant context missing' });
+            }
+
             const sectors = await this.service.getAllSectors(tenantId);
             res.json(sectors);
         } catch (error: any) {
