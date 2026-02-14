@@ -82,7 +82,7 @@ TIPO: "${eventType}"
 
         try {
             const text = await this.callWithRetry(prompt);
-            const cleanText = text.replace(/```json / g, '').replace(/```/g, '').trim();
+            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(cleanText);
         } catch (error: any) {
             console.error("Fallback RootCause Error:", error.message);
