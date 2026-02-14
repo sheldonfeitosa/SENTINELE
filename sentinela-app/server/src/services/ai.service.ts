@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export class AIService {
-    private async callWithRetry(prompt: string, maxRetries: number = 2): Promise<string> {
+    private async callWithRetry(prompt: string, maxRetries: number = 2, jsonMode: boolean = true): Promise<string> {
         const apiKey = process.env.GROQ_API_KEY;
         if (!apiKey) {
             console.error('AIService ERROR: GROQ_API_KEY is missing!');
@@ -13,18 +13,23 @@ export class AIService {
         let attempts = 0;
         while (attempts <= maxRetries) {
             try {
+                const body: any = {
+                    messages: [{ role: 'user', content: prompt }],
+                    model: 'llama-3.3-70b-versatile',
+                    temperature: 0.1
+                };
+
+                if (jsonMode) {
+                    body.response_format = { type: "json_object" };
+                }
+
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${apiKey} `,
+                        'Authorization': `Bearer ${apiKey}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        messages: [{ role: 'user', content: prompt }],
-                        model: 'llama-3.3-70b-versatile',
-                        temperature: 0.1,
-                        response_format: { type: "json_object" }
-                    })
+                    body: JSON.stringify(body)
                 });
 
                 if (!response.ok) {
@@ -125,7 +130,7 @@ TIPO: "${eventType}"
             Responda como um especialista em gestão de risco hospitalar.
         `;
         try {
-            return await this.callWithRetry(prompt);
+            return await this.callWithRetry(prompt, 2, false);
         } catch (e) {
             return "Desculpe, não consigo responder no momento devido a uma falha na conexão.";
         }
