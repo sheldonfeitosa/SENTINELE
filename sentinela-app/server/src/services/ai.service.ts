@@ -133,11 +133,18 @@ export class AIService {
             { "eventType": "...", "riskLevel": "...", "recommendation": "..." }
         `;
         try {
+            console.log('AIService: Starting analysis for description (length):', description.length);
             const text = await this.callWithRetry(prompt);
+            console.log('AIService: Raw response received');
             const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(clean);
         } catch (e: any) {
-            console.error("AI Analyze Incident Failed:", e.message);
+            console.error("AIService ERROR in analyzeIncident:", {
+                message: e.message,
+                stack: e.stack,
+                status: e.status, // Groq errors often have status
+                code: e.code
+            });
             return { eventType: 'ERRO', riskLevel: 'MODERADO', recommendation: 'Falha na análise automática.' };
         }
     }
