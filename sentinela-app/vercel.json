@@ -2,8 +2,12 @@
     "outputDirectory": "client/dist",
     "rewrites": [
         {
+            "source": "/api/debug_chat",
+            "destination": "/api/debug_chat.ts"
+        },
+        {
             "source": "/api/(.*)",
-            "destination": "/api/index.ts"
+            "destination": "/server-dist/server.js"
         },
         {
             "source": "/((?!api/).*)",
