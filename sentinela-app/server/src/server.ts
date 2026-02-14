@@ -62,17 +62,25 @@ app.use((req, res, next) => {
     next();
 });
 
-// Simple Health Check
-app.get('/api/health', (req, res) => {
+// Simple Health Check (with DB status)
+app.get('/api/health', async (req, res) => {
+    let dbStatus = 'waiting';
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        dbStatus = 'connected';
+    } catch (e: any) {
+        dbStatus = `error: ${e.message}`;
+    }
+
     res.status(200).json({
         status: 'ok',
-        version: '2.0.2-minimal',
+        version: '2.0.3-auth-prisma',
+        db_status: dbStatus,
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
     });
 });
 
-/*
 // Public Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes); // Reporting is public
