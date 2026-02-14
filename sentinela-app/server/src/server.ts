@@ -7,19 +7,20 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-/*
 import { notificationRoutes } from './routes/notification.routes';
-import riskManagerRoutes from './routes/risk-manager.routes';
 import sectorRoutes from './routes/sector.routes';
+import { authRoutes } from './routes/auth.routes';
+import { authenticate } from './middlewares/auth.middleware';
+import { prisma } from './lib/prisma';
+
+/*
+import riskManagerRoutes from './routes/risk-manager.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import webhookRoutes from './routes/webhook.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import articleRoutes from './routes/article.routes';
 import linkedinRoutes from './routes/linkedin.routes';
-import { authRoutes } from './routes/auth.routes';
-import { authenticate } from './middlewares/auth.middleware';
 */
-import { prisma } from './lib/prisma';
 
 console.log('--- Initializing Sentinela AI Server ---');
 
@@ -42,15 +43,20 @@ app.get('/api/health', async (req, res) => {
 
     res.status(200).json({
         status: 'ok',
-        version: '2.0.5-debug-prisma',
+        version: '2.0.6-debug-auth-notif',
         db_status: dbStatus,
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
     });
 });
 
+// Re-enabled routes
+app.use('/api/auth', authRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/sectors', sectorRoutes);
+
 app.get('/', (req, res) => {
-    res.send('Sentinela AI API is running - DEBUG-PRISMA');
+    res.send('Sentinela AI API is running - DEBUG-AUTH-NOTIF');
 });
 
 export default app;
