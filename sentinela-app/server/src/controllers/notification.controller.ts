@@ -139,7 +139,7 @@ export class NotificationController {
             const id = parseInt(req.params.id);
             const { message, context } = req.body;
             const result = await this.service.chatWithAI(id, message, context);
-            res.json(result);
+            res.json({ response: result });
         } catch (error: any) {
             console.error('CHAT ERROR:', error.message);
             res.status(500).json({ error: 'Failed to chat with AI' });
