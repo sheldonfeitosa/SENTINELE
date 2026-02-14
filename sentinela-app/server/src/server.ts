@@ -6,7 +6,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-/*
 import { notificationRoutes } from './routes/notification.routes';
 import riskManagerRoutes from './routes/risk-manager.routes';
 import sectorRoutes from './routes/sector.routes';
@@ -18,8 +17,7 @@ import linkedinRoutes from './routes/linkedin.routes';
 
 import { authRoutes } from './routes/auth.routes';
 import { authenticate } from './middlewares/auth.middleware';
-*/
-// import { prisma } from './lib/prisma';
+import { prisma } from './lib/prisma';
 
 console.log('--- Initializing Sentinela AI Server ---');
 console.log('Environment:', process.env.NODE_ENV);
@@ -46,7 +44,8 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// app.use('/api', webhookRoutes);
+// Webhook must be before express.json()
+app.use('/api', webhookRoutes);
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -74,7 +73,7 @@ app.get('/api/health', async (req, res) => {
 
     res.status(200).json({
         status: 'ok',
-        version: '2.0.3-auth-prisma',
+        version: '2.0.4-full-restore',
         db_status: dbStatus,
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
@@ -96,7 +95,6 @@ console.log('Mounted /api/subscription routes.');
 
 app.use('/api/articles', articleRoutes);
 app.use('/api/linkedin', linkedinRoutes);
-*/
 
 app.get('/', (req, res) => {
     res.send('Sentinela AI API is running - SAAS-AUTH-ACTIVE');
