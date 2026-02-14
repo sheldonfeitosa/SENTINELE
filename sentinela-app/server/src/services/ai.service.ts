@@ -82,24 +82,29 @@ export class AIService {
 
     async analyzeIncident(description: string): Promise<any> {
         const prompt = `
-            Analise o seguinte incidente hospitalar e retorne um JSON com:
-            - eventType: Tipo do evento (queda, medicação, etc)
-            - riskLevel: Classificação de risco (LEVE, MODERADO, GRAVE)
-            - recommendation: Recomendação breve. Mencione 'JSON' no fim.
-            
+            Atue como um analista de risco hospitalar.
+            Analise o seguinte incidente e retorne um JSON válido.
             Descrição: "${description}"
 
-            JSON de saída:
-            { "eventType": "...", "riskLevel": "...", "recommendation": "..." }
+            Estrutura JSON esperada:
+            {
+              "eventType": "Tipo do evento",
+              "riskLevel": "LEVE, MODERADO ou GRAVE",
+              "recommendation": "Sua recomendação"
+            }
+            IMPORTANTE: Retorne APENAS o JSON.
         `;
         try {
-            this.logTrace(`AnalyzeIncident starting for: ${description.substring(0, 20)}...`);
             const text = await this.callWithRetry(prompt);
             const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(clean);
         } catch (e: any) {
-            this.logTrace(`AnalyzeIncident FATAL: ${e.message}`);
-            return { eventType: 'ERRO', riskLevel: 'MODERADO', recommendation: 'Falha na análise automática.' };
+            console.error("AI Analyze Incident Failed:", e.message);
+            return {
+                eventType: 'ERRO',
+                riskLevel: 'MODERADO',
+                recommendation: `Falha na análise automática. Erro: ${e.message.substring(0, 50)}...`
+            };
         }
     }
     // ... rest of the service ...
