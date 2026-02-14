@@ -46,8 +46,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Webhook must be before express.json()
-app.use('/api', webhookRoutes);
+// app.use('/api', webhookRoutes);
 
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -73,6 +72,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+/*
 // Public Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes); // Reporting is public
@@ -88,6 +88,7 @@ console.log('Mounted /api/subscription routes.');
 
 app.use('/api/articles', articleRoutes);
 app.use('/api/linkedin', linkedinRoutes);
+*/
 
 app.get('/', (req, res) => {
     res.send('Sentinela AI API is running - SAAS-AUTH-ACTIVE');
