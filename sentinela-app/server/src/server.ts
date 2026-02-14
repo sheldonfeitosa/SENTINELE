@@ -17,9 +17,9 @@ import riskManagerRoutes from './routes/risk-manager.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import articleRoutes from './routes/article.routes';
 import linkedinRoutes from './routes/linkedin.routes';
+import subscriptionRoutes from './routes/subscription.routes';
 /*
 import webhookRoutes from './routes/webhook.routes';
-import subscriptionRoutes from './routes/subscription.routes';
 */
 
 console.log('--- Initializing Sentinela AI Server ---');
@@ -43,7 +43,7 @@ app.get('/api/health', async (req, res) => {
 
     res.status(200).json({
         status: 'ok',
-        version: '2.1.0-art-link',
+        version: '2.1.1-subs',
         db_status: dbStatus,
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
@@ -61,6 +61,10 @@ app.use('/api/dashboard', authenticate, dashboardRoutes);
 
 app.use('/api/articles', articleRoutes);
 app.use('/api/linkedin', linkedinRoutes);
+
+console.log('Mounting /api/subscription routes...');
+app.use('/api/subscription', authenticate, subscriptionRoutes);
+console.log('Mounted /api/subscription routes.');
 
 app.get('/', (req, res) => {
     res.send('Sentinela AI API is running - STABLE-RESTORE');
