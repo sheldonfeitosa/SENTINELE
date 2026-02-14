@@ -18,15 +18,6 @@ export class AdminController {
         }
     };
 
-    getIncidents = async (req: AuthRequest, res: Response) => {
-        try {
-            const incidents = await this.service.getAllIncidents();
-            res.json(incidents);
-        } catch (error: any) {
-            res.status(500).json({ error: 'Erro ao buscar incidentes globais', details: error.message });
-        }
-    };
-
     getStats = async (req: AuthRequest, res: Response) => {
         try {
             const stats = await this.service.getSystemStats();
@@ -58,19 +49,6 @@ export class AdminController {
         }
     };
 
-    updateDeadline = async (req: AuthRequest, res: Response) => {
-        try {
-            const { incidentId, newDeadline } = req.body;
-            if (!incidentId || !newDeadline) {
-                return res.status(400).json({ error: 'incidentId e newDeadline são obrigatórios.' });
-            }
-            await this.service.updateIncidentDeadline(incidentId, new Date(newDeadline));
-            res.json({ message: 'Prazo atualizado com sucesso.' });
-        } catch (error: any) {
-            res.status(500).json({ error: 'Erro ao atualizar prazo', details: error.message });
-        }
-    };
-
     updateSubscription = async (req: AuthRequest, res: Response) => {
         try {
             const { tenantId, status, periodEnd } = req.body;
@@ -81,6 +59,19 @@ export class AdminController {
             res.json({ message: 'Assinatura atualizada com sucesso.' });
         } catch (error: any) {
             res.status(500).json({ error: 'Erro ao atualizar assinatura', details: error.message });
+        }
+    };
+
+    sendSalesEmail = async (req: AuthRequest, res: Response) => {
+        try {
+            const { email } = req.body;
+            if (!email) {
+                return res.status(400).json({ error: 'Email é obrigatório.' });
+            }
+            await this.service.sendSalesEmail(email);
+            res.json({ message: 'E-mail de prospecção enviado com sucesso.' });
+        } catch (error: any) {
+            res.status(500).json({ error: 'Erro ao enviar e-mail de prospecção', details: error.message });
         }
     };
 }

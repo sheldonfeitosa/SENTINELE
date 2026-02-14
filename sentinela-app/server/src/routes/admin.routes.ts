@@ -11,10 +11,9 @@ router.use(authenticate, isAdmin);
 
 router.get('/tenants', controller.getTenants);
 router.get('/tenants-detailed', controller.getTenantsWithUsers);
-router.get('/incidents', controller.getIncidents);
 router.get('/stats', controller.getStats);
 router.post('/reset-password', controller.resetPassword);
-router.put('/update-deadline', controller.updateDeadline);
 router.put('/update-subscription', controller.updateSubscription);
+router.post('/send-sales-email', controller.sendSalesEmail);
 
 export default router;

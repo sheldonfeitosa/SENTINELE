@@ -7,12 +7,10 @@ export class AdminService {
             include: {
                 _count: {
                     select: {
-                        users: true,
-                        incidents: true
+                        users: true
                     }
                 },
                 users: {
-                    take: 1,
                     select: {
                         subscriptionStatus: true,
                         currentPeriodEnd: true
@@ -23,32 +21,25 @@ export class AdminService {
         });
     }
 
-    async getAllIncidents() {
-        return prisma.incident.findMany({
-            include: {
-                tenant: {
-                    select: {
-                        name: true,
-                        slug: true
-                    }
-                }
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 500 // Limit for performance, can add pagination later
-        });
-    }
-
     async getSystemStats() {
-        const [tenantCount, incidentCount, userCount] = await Promise.all([
+        const [tenantCount, userCount, activeTenants] = await Promise.all([
             prisma.tenant.count(),
-            prisma.incident.count(),
-            prisma.user.count()
+            prisma.user.count(),
+            prisma.user.groupBy({
+                by: ['tenantId'],
+                where: { subscriptionStatus: 'active' }
+            })
         ]);
+
+        const totalActive = activeTenants.length;
+        const estimatedMRR = totalActive * 499.00; // Valor fixo hipotético por hospital ativo
 
         return {
             totalTenants: tenantCount,
-            totalIncidents: incidentCount,
-            totalUsers: userCount
+            totalUsers: userCount,
+            activeSubscriptions: totalActive,
+            estimatedMRR,
+            currency: 'BRL'
         };
     }
 
@@ -61,7 +52,8 @@ export class AdminService {
                         email: true,
                         name: true,
                         role: true,
-                        subscriptionStatus: true
+                        subscriptionStatus: true,
+                        currentPeriodEnd: true
                     }
                 }
             }
@@ -76,15 +68,7 @@ export class AdminService {
         });
     }
 
-    async updateIncidentDeadline(incidentId: number, newDeadline: Date) {
-        return prisma.incident.update({
-            where: { id: incidentId },
-            data: { actionPlanDeadline: newDeadline }
-        });
-    }
-
     async updateTenantSubscription(tenantId: string, status: string, periodEnd?: Date) {
-        // Technically subscription is per user in the current schema, so we update all users of that tenant
         return prisma.user.updateMany({
             where: { tenantId },
             data: {
@@ -92,5 +76,11 @@ export class AdminService {
                 currentPeriodEnd: periodEnd || null
             }
         });
+    }
+
+    async sendSalesEmail(email: string) {
+        // Here we would integrate with EmailService to send a sales pitch
+        console.log(`Simulating sales email send to: ${email}`);
+        return true;
     }
 }

@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -9,104 +9,82 @@ datasource db {
 }
 
 model Tenant {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   name      String
-  slug      String   @unique // For subdomain/url (ex: hospital-a)
-  createdAt DateTime @default(now())
-  
-  users     User[]
+  slug      String     @unique
+  createdAt DateTime   @default(now())
   incidents Incident[]
   sectors   Sector[]
+  users     User[]
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String   // Hashed password
-  name      String
-  role      String   @default("USER") // SUPER_ADMIN, TENANT_ADMIN, RISK_ANALYST, USER
-  sectors   String?  // JSON string for notification routing (Legacy support)
-  
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  
-  // Stripe Subscription
-  stripeCustomerId   String?
-  subscriptionStatus String? // active, trialing, past_due, canceled, unpaid
-  subscriptionId     String?
-  currentPeriodEnd   DateTime?
-  
-  createdAt DateTime @default(now())
-
-  // LinkedIn Integration
+  id                  Int       @id @default(autoincrement())
+  email               String    @unique
+  password            String
+  name                String
+  role                String    @default("USER")
+  sectors             String?
+  tenantId            String
+  stripeCustomerId    String?
+  subscriptionStatus  String?
+  subscriptionId      String?
+  currentPeriodEnd    DateTime?
+  createdAt           DateTime  @default(now())
   linkedinAccessToken String?
   linkedinUrn         String?
-  
-  articles Article[]
+  articles            Article[]
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
 }
 
 model Incident {
-  id            Int      @id @default(autoincrement())
-  createdAt     DateTime @default(now())
-  
-  tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  
-  patientName   String
-  motherName    String?
-  birthDate     DateTime?
-  sex           String?
-  admissionDate DateTime?
-  eventDate     DateTime
-  period        String?
-  sector        String
-  notifySector  String
-  type          String   
-  description   String
-  reporterEmail String?
-  status        String   @default("Pendente")
-  
-  // AI Fields
-  eventTypeAi   String?
-  riskLevel     String?
-  aiAnalysis    String?
-
-  // Investigation Phase
-  investigationList String? // JSON string of checklist answers
-
-  // Action Plan Fields
-  rootCause           String? // HTML content
-  actionPlan          String? // HTML content
-  actionPlanStatus    String  @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED
+  id                  Int       @id @default(autoincrement())
+  createdAt           DateTime  @default(now())
+  tenantId            String
+  patientName         String
+  motherName          String?
+  birthDate           DateTime?
+  sex                 String?
+  admissionDate       DateTime?
+  eventDate           DateTime
+  period              String?
+  sector              String
+  notifySector        String
+  type                String
+  description         String
+  reporterEmail       String?
+  status              String    @default("Pendente")
+  eventTypeAi         String?
+  riskLevel           String?
+  aiAnalysis          String?
+  investigationList   String?
+  rootCause           String?
+  actionPlan          String?
+  actionPlanStatus    String    @default("NOT_STARTED")
   actionPlanStartDate DateTime?
   actionPlanDeadline  DateTime?
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
 }
 
 model Sector {
-  id   Int    @id @default(autoincrement())
-  name String 
-  
+  id       Int    @id @default(autoincrement())
+  name     String
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
-  
-  @@unique([name, tenantId]) // Sector name must be unique PER tenant
+
+  @@unique([name, tenantId])
 }
 
 model Article {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String   // Text or HTML
-  imageUrl  String?
-  category  String?  @default("Geral")
-  
-  published Boolean  @default(false)
-  
-  // LinkedIn Integration
+  id             Int      @id @default(autoincrement())
+  title          String
+  content        String
+  imageUrl       String?
+  category       String?  @default("Geral")
+  published      Boolean  @default(false)
   linkedinPostId String?
-  
-  authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  authorId       Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  author         User     @relation(fields: [authorId], references: [id])
 }

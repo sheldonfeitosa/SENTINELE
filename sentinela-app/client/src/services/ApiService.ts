@@ -198,10 +198,6 @@ class ApiService {
         return response.data;
     }
 
-    async getAdminIncidents(): Promise<any[]> {
-        const response = await axios.get(`${API_BASE}/admin/incidents`);
-        return response.data;
-    }
 
     async getAdminStats(): Promise<any> {
         const response = await axios.get(`${API_BASE}/admin/stats`);
@@ -217,8 +213,8 @@ class ApiService {
         await axios.post(`${API_BASE}/admin/reset-password`, { userId, newPassword });
     }
 
-    async adminUpdateDeadline(incidentId: number, newDeadline: Date): Promise<void> {
-        await axios.put(`${API_BASE}/admin/update-deadline`, { incidentId, newDeadline });
+    async adminSendSalesEmail(email: string): Promise<void> {
+        await axios.post(`${API_BASE}/admin/send-sales-email`, { email });
     }
 
     async adminUpdateSubscription(tenantId: string, status: string, periodEnd?: Date): Promise<void> {
