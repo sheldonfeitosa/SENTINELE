@@ -228,6 +228,11 @@ class ApiService {
     async adminDeleteUser(userId: number): Promise<void> {
         await axios.delete(`${API_BASE}/admin/users/${userId}`);
     }
+
+    async resetPassword(email: string): Promise<any> {
+        const response = await axios.post(`${API_BASE}/auth/reset-password`, { email });
+        return response.data;
+    }
 }
 
 export interface RiskManager {

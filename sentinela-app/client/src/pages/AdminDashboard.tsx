@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../services/ApiService';
-import { Building2, Users, Search, ShieldCheck, Key, CreditCard, ChevronDown, ChevronUp, DollarSign, TrendingUp, Mail, Clock, UserPlus, Trash2, X, Plus } from 'lucide-react';
+import { Building2, Users, Search, Key, CreditCard, ChevronDown, ChevronUp, DollarSign, TrendingUp, Mail, UserPlus, Trash2, X } from 'lucide-react';
 import { Toast, type ToastType } from '../components/ui/Toast';
 import React from 'react';
 
@@ -97,7 +97,7 @@ export function AdminDashboard() {
         }
     };
 
-    const calculateTrialDays = (endDate: string) => {
+    const calculateRemainingDays = (endDate: string) => {
         const remaining = new Date(endDate).getTime() - new Date().getTime();
         const days = Math.ceil(remaining / (1000 * 60 * 60 * 24));
         return days > 0 ? days : 0;
@@ -123,7 +123,7 @@ export function AdminDashboard() {
                 <div>
                     <h2 className="text-3xl font-bold text-[#003366] flex items-center gap-3">
                         <DollarSign className="w-8 h-8 text-emerald-500" />
-                        Gestão de Receita e Conversão
+                        Painel Administrativo Financeiro
                     </h2>
                     <p className="text-gray-600 mt-1">Monitore MRR, assinaturas ativas e prospecção de novos clientes.</p>
                 </div>
@@ -209,7 +209,7 @@ export function AdminDashboard() {
                             {filteredTenants.map(t => {
                                 const mainUser = t.users[0];
                                 const isTrial = mainUser?.subscriptionStatus === 'trialing';
-                                const daysLeft = isTrial && mainUser?.currentPeriodEnd ? calculateTrialDays(mainUser.currentPeriodEnd) : null;
+                                const daysLeft = mainUser?.currentPeriodEnd ? calculateRemainingDays(mainUser.currentPeriodEnd) : null;
 
                                 return (
                                     <React.Fragment key={t.id}>
@@ -230,16 +230,18 @@ export function AdminDashboard() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                {isTrial ? (
+                                                {daysLeft !== null ? (
                                                     <div className="flex flex-col items-center">
-                                                        <span className={`text-xs font-bold ${daysLeft !== null && daysLeft <= 7 ? 'text-red-500' : 'text-gray-900'}`}>
+                                                        <span className={`text-xs font-bold ${daysLeft <= 7 ? 'text-red-500' : 'text-gray-900'}`}>
                                                             {daysLeft} dias restantes
                                                         </span>
-                                                        <Clock className="w-3 h-3 text-gray-300" />
+                                                        <div className="text-[10px] text-gray-400">
+                                                            Até {new Date(mainUser.currentPeriodEnd).toLocaleDateString('pt-BR')}
+                                                        </div>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs font-medium text-gray-600">
-                                                        {mainUser?.currentPeriodEnd ? new Date(mainUser.currentPeriodEnd).toLocaleDateString('pt-BR') : 'Sem data'}
+                                                    <span className="text-xs font-medium text-gray-400">
+                                                        Sem prazo definido
                                                     </span>
                                                 )}
                                             </td>

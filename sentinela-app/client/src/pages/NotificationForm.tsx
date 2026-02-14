@@ -134,7 +134,7 @@ export function NotificationForm() {
                         <Activity className="w-6 h-6 text-[#0ea5e9]" />
                         SENTINELA AI
                     </h1>
-                    <p className="text-blue-100 text-sm mt-1">Sistema de Notificação de Eventos e Não Conformidades</p>
+                    <p className="text-blue-100 text-sm mt-1">Plataforma de Notificação de Eventos e Não Conformidades</p>
                 </div>
 
                 {/* Type Selection Buttons */}

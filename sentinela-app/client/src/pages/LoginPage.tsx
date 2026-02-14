@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { apiService, API_BASE } from '../services/ApiService'; // Import API_BASE
 import axios from 'axios';
 import {
-    LayoutDashboard, AlertCircle, CheckCircle2, ArrowRight, Star, ShieldCheck, Zap, Mail, Lock
+    LayoutDashboard, AlertCircle, CheckCircle2, ArrowRight, Star, ShieldCheck, Zap, Mail, Lock, X
 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -13,6 +13,25 @@ const LoginPage: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [generatedPassword, setGeneratedPassword] = useState('');
+    const [loadingReset, setLoadingReset] = useState(false);
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoadingReset(true);
+        setError('');
+        try {
+            await apiService.resetPassword(resetEmail);
+            alert('Uma nova senha foi enviada para o seu e-mail!');
+            setIsResetModalOpen(false);
+            setResetEmail('');
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Erro ao solicitar nova senha. Verifique o e-mail informado.');
+        } finally {
+            setLoadingReset(false);
+        }
+    };
 
     // Prospect Form State
     const [prospectName, setProspectName] = useState('');
@@ -37,7 +56,14 @@ const LoginPage: React.FC = () => {
 
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
-            navigate('/dashboard');
+
+            console.log('[Login] User Role:', response.data.user.role);
+
+            if (response.data.user.role === 'SUPER_ADMIN') {
+                navigate('/admin');
+            } else {
+                navigate('/gestao-risco');
+            }
         } catch (err: any) {
             console.error('Login failed', err);
             setError(err.response?.data?.error || 'Falha no login. Verifique suas credenciais.');
@@ -111,7 +137,7 @@ const LoginPage: React.FC = () => {
                     </h1>
 
                     <p className="text-lg text-slate-300 mb-8 leading-relaxed">
-                        Transforme a gestão de riscos do seu hospital. Deixe a burocracia para trás e use a IA para prever e prevenir eventos adversos antes que aconteçam.
+                        A plataforma definitiva para excelência hospitalar. Use Inteligência Artificial para elevar a segurança, eficiência e gestão do seu ambiente clínico.
                     </p>
 
                     <div className="space-y-4 mb-12">
@@ -120,8 +146,8 @@ const LoginPage: React.FC = () => {
                                 <CheckCircle2 className="w-5 h-5 text-green-400" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-white">Zero Burocracia</h3>
-                                <p className="text-sm text-slate-400">Relate incidentes por voz ou texto livre. Nossa IA estrutura tudo.</p>
+                                <h3 className="font-semibold text-white">Gestão Inteligente</h3>
+                                <p className="text-sm text-slate-400">Automatize processos e extraia insights valiosos de dados não estruturados.</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
@@ -164,12 +190,12 @@ const LoginPage: React.FC = () => {
                     <div className="flex bg-slate-100 p-1 rounded-xl mb-8">
                         <button
                             onClick={() => setActiveTab('login')}
-                            className={`flex - 1 py - 2.5 text - sm font - medium rounded - lg transition - all ${activeTab === 'login'
+                            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${activeTab === 'login'
                                 ? 'bg-white text-slate-900 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
-                                } `}
+                                }`}
                         >
-                            Acesso Cliente
+                            Acesso ao Sistema
                         </button>
                         <button
                             onClick={() => setActiveTab('prospect')}
@@ -190,7 +216,7 @@ const LoginPage: React.FC = () => {
                         <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                             <div className="text-left mb-8">
                                 <h2 className="text-2xl font-bold text-slate-900">Bem-vindo de volta</h2>
-                                <p className="text-slate-500 mt-2">Acesse seu painel de gestão de riscos.</p>
+                                <p className="text-slate-500 mt-2">Acesse sua conta corporativa.</p>
                             </div>
 
                             {error && (
@@ -236,7 +262,13 @@ const LoginPage: React.FC = () => {
                                         <input type="checkbox" className="mr-2 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                                         Lembrar-me
                                     </label>
-                                    <a href="#" className="font-medium text-blue-600 hover:text-blue-500">Esqueceu a senha?</a>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsResetModalOpen(true)}
+                                        className="font-medium text-blue-600 hover:text-blue-500"
+                                    >
+                                        Esqueceu a senha?
+                                    </button>
                                 </div>
 
                                 <button
@@ -355,6 +387,38 @@ const LoginPage: React.FC = () => {
                     )}
                 </div>
             </div>
+            {isResetModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-8 animate-in zoom-in duration-200">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-slate-900">Recuperar Senha</h3>
+                            <button onClick={() => setIsResetModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleResetPassword} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">E-mail Corporativo</label>
+                                <input
+                                    required
+                                    type="email"
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="seu@email.com"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loadingReset}
+                                className="w-full py-3 bg-[#003366] text-white rounded-lg font-bold hover:bg-[#002244] transition-all disabled:opacity-50"
+                            >
+                                {loadingReset ? 'Enviando...' : 'Enviar Nova Senha'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

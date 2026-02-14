@@ -28,7 +28,9 @@ export function Layout() {
                             <div className="h-8 w-8 text-[#0ea5e9] font-bold text-2xl">S</div>
                             <div>
                                 <h1 className="text-xl font-bold tracking-tight">SENTINELA AI</h1>
-                                <p className="text-xs text-gray-300">Sistema de Notificação e Gestão de Risco</p>
+                                <p className="text-xs text-gray-300">
+                                    {user.role === 'SUPER_ADMIN' ? 'Painel Administrativo SaaS' : 'Sistema de Gestão de Risco Hospitalar'}
+                                </p>
                             </div>
                         </div>
 
@@ -50,11 +52,6 @@ export function Layout() {
                             <>
                                 {location.pathname.startsWith('/admin') ? (
                                     <>
-                                        <Link to="/gestao-risco" className="flex items-center gap-2 text-blue-300 hover:text-white transition-colors">
-                                            <Activity className="w-4 h-4" />
-                                            Voltar para o Sistema
-                                        </Link>
-                                        <div className="h-6 w-px bg-white/20 mx-2"></div>
                                         <span className="flex items-center gap-2 text-orange-400 font-bold">
                                             <ShieldCheck className="w-4 h-4" />
                                             Painel Administrativo SaaS
@@ -62,32 +59,36 @@ export function Layout() {
                                     </>
                                 ) : (
                                     <>
-                                        <Link to="/notificacao" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                            <PlusCircle className="w-4 h-4" />
-                                            Nova Notificação
-                                        </Link>
-                                        <Link to="/gestao-risco" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                            <Activity className="w-4 h-4" />
-                                            Gestão de Risco
-                                        </Link>
-                                        <Link to="/gestores" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                            <Users className="w-4 h-4" />
-                                            Painel dos Gestores
-                                        </Link>
-                                        <Link to="/estatisticas" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                            <BarChart2 className="w-4 h-4" />
-                                            Estatísticas
-                                        </Link>
-                                        <Link to="/tratativa" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                            <ClipboardList className="w-4 h-4" />
-                                            Tratativa
-                                        </Link>
-                                        <Link to="/planos" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
-                                            <CreditCard className="w-4 h-4" />
-                                            Planos
-                                        </Link>
+                                        {user.role !== 'SUPER_ADMIN' && (
+                                            <>
+                                                <Link to="/notificacao" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                                    <PlusCircle className="w-4 h-4" />
+                                                    Nova Notificação
+                                                </Link>
+                                                <Link to="/gestao-risco" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                                    <Activity className="w-4 h-4" />
+                                                    Gestão de Risco
+                                                </Link>
+                                                <Link to="/gestores" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                                    <Users className="w-4 h-4" />
+                                                    Painel dos Gestores
+                                                </Link>
+                                                <Link to="/estatisticas" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                                    <BarChart2 className="w-4 h-4" />
+                                                    Estatísticas
+                                                </Link>
+                                                <Link to="/tratativa" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                                    <ClipboardList className="w-4 h-4" />
+                                                    Tratativa
+                                                </Link>
+                                                <Link to="/planos" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                                    <CreditCard className="w-4 h-4" />
+                                                    Planos
+                                                </Link>
+                                            </>
+                                        )}
                                         {user.role === 'SUPER_ADMIN' && (
-                                            <Link to="/admin" className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors font-bold border-l border-white/20 pl-4 ml-2">
+                                            <Link to="/admin" className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors font-bold">
                                                 <ShieldCheck className="w-4 h-4" />
                                                 Painel SaaS
                                             </Link>

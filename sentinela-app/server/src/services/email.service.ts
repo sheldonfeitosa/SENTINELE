@@ -428,6 +428,43 @@ export class EmailService {
             html
         });
     }
+    async sendPasswordResetEmail(email: string, name: string, newPassword: string) {
+        const html = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #003366;">Recuperação de Senha - Sentinela AI</h2>
+                <p>Olá <strong>${name}</strong>,</p>
+                <p>Recebemos uma solicitação de recuperação de senha para sua conta.</p>
+                
+                <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #003366;">
+                    <p style="margin: 5px 0;">Sua nova senha temporária é:</p>
+                    <p style="margin: 10px 0; font-size: 24px; font-weight: bold; color: #003366;">
+                        <code style="background-color: #e0e0e0; padding: 5px 10px; border-radius: 4px;">${newPassword}</code>
+                    </p>
+                </div>
+
+                <p style="color: #666; font-size: 14px;"><strong>IMPORTANTE:</strong> Por segurança, recomendamos que você altere esta senha após o primeiro login.</p>
+                
+                <p>Se você não solicitou esta alteração, por favor ignore este e-mail ou entre em contato com o suporte.</p>
+                
+                <br>
+                <a href="https://sentinela-ai.vercel.app/login" style="background-color: #003366; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Acessar Sistema</a>
+            </div>
+        `;
+
+        try {
+            await this.resend.emails.send({
+                from: this.fromEmail,
+                to: email,
+                subject: 'Sua Nova Senha - Sentinela AI',
+                html
+            });
+            console.log(`✅ Password reset email sent to ${email}`);
+        } catch (error) {
+            console.error('❌ Failed to send password reset email:', error);
+            throw error;
+        }
+    }
+
     async sendTrialRequestNotification(data: { name: string; hospital: string; email: string; phone: string }) {
         const html = `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0;">

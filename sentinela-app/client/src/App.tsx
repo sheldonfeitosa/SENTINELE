@@ -18,11 +18,24 @@ import { AdminDashboard } from './pages/AdminDashboard';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.ReactNode, requireSaaS?: boolean }) => {
   const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
   if (!token) {
     return <Navigate to="/login" replace />;
   }
+
+  // Isolation: Super Admin belongs ONLY in /admin
+  if (user.role === 'SUPER_ADMIN' && !requireSaaS) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // Reverse Isolation: Regular users shouldn't access /admin
+  if (requireSaaS && user.role !== 'SUPER_ADMIN') {
+    return <Navigate to="/gestao-risco" replace />;
+  }
+
   return children;
 };
 
@@ -32,6 +45,7 @@ function App() {
       <ErrorBoundary>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/n/:tenantSlug" element={<NotificationForm />} />
 
           <Route path="/" element={<Layout />}>
             <Route index element={
@@ -84,7 +98,7 @@ function App() {
             } />
 
             <Route path="admin" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireSaaS={true}>
                 <AdminDashboard />
               </ProtectedRoute>
             } />

@@ -195,4 +195,29 @@ export class AuthService {
 
         return { password };
     }
+
+    async resetPassword(email: string): Promise<void> {
+        // 1. Find User
+        const user = await prisma.user.findUnique({
+            where: { email }
+        });
+
+        if (!user) {
+            throw new Error('Usuário não encontrado.');
+        }
+
+        // 2. Generate Random Password (8 chars)
+        const newPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+        // 3. Update User Password
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { password: hashedPassword }
+        });
+
+        // 4. Send Reset Email
+        const emailService = new EmailService();
+        await emailService.sendPasswordResetEmail(email, user.name, newPassword);
+    }
 }

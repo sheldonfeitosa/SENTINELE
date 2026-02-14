@@ -55,4 +55,17 @@ router.post('/trial-request', async (req, res) => {
     }
 });
 
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: 'Email é obrigatório' });
+        }
+        await authService.resetPassword(email);
+        res.json({ message: 'Nova senha enviada para o seu e-mail.' });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 export const authRoutes = router;
