@@ -6,6 +6,10 @@
             "destination": "/api/debug.ts"
         },
         {
+            "source": "/api/debug_ai",
+            "destination": "/api/debug_ai.ts"
+        },
+        {
             "source": "/api/(.*)",
             "destination": "/api/index.ts"
         },
