@@ -220,6 +220,14 @@ class ApiService {
     async adminUpdateSubscription(tenantId: string, status: string, periodEnd?: Date): Promise<void> {
         await axios.put(`${API_BASE}/admin/update-subscription`, { tenantId, status, periodEnd });
     }
+
+    async adminCreateUser(userData: any): Promise<void> {
+        await axios.post(`${API_BASE}/admin/users`, userData);
+    }
+
+    async adminDeleteUser(userId: number): Promise<void> {
+        await axios.delete(`${API_BASE}/admin/users/${userId}`);
+    }
 }
 
 export interface RiskManager {

@@ -15,5 +15,7 @@ router.get('/stats', controller.getStats);
 router.post('/reset-password', controller.resetPassword);
 router.put('/update-subscription', controller.updateSubscription);
 router.post('/send-sales-email', controller.sendSalesEmail);
+router.post('/users', controller.createUser);
+router.delete('/users/:id', controller.deleteUser);
 
 export default router;

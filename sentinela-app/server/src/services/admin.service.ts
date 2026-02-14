@@ -83,4 +83,20 @@ export class AdminService {
         console.log(`Simulating sales email send to: ${email}`);
         return true;
     }
+
+    async createAdminUser(data: { name: string; email: string; password: string; role: string; tenantId: string }) {
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+        return prisma.user.create({
+            data: {
+                ...data,
+                password: hashedPassword
+            }
+        });
+    }
+
+    async deleteAdminUser(userId: number) {
+        return prisma.user.delete({
+            where: { id: userId }
+        });
+    }
 }

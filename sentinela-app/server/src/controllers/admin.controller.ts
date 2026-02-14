@@ -74,4 +74,30 @@ export class AdminController {
             res.status(500).json({ error: 'Erro ao enviar e-mail de prospecção', details: error.message });
         }
     };
+
+    createUser = async (req: AuthRequest, res: Response) => {
+        try {
+            const { name, email, password, role, tenantId } = req.body;
+            if (!name || !email || !password || !role || !tenantId) {
+                return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
+            }
+            const user = await this.service.createAdminUser({ name, email, password, role, tenantId });
+            res.status(201).json(user);
+        } catch (error: any) {
+            res.status(500).json({ error: 'Erro ao criar usuário', details: error.message });
+        }
+    };
+
+    deleteUser = async (req: AuthRequest, res: Response) => {
+        try {
+            const { id } = req.params;
+            if (!id) {
+                return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
+            }
+            await this.service.deleteAdminUser(Number(id));
+            res.json({ message: 'Usuário excluído com sucesso.' });
+        } catch (error: any) {
+            res.status(500).json({ error: 'Erro ao excluir usuário', details: error.message });
+        }
+    };
 }

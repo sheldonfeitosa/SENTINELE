@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../services/ApiService';
-import { Building2, Users, Search, ShieldCheck, Key, CreditCard, ChevronDown, ChevronUp, DollarSign, TrendingUp, Mail, Clock } from 'lucide-react';
+import { Building2, Users, Search, ShieldCheck, Key, CreditCard, ChevronDown, ChevronUp, DollarSign, TrendingUp, Mail, Clock, UserPlus, Trash2, X, Plus } from 'lucide-react';
 import { Toast, type ToastType } from '../components/ui/Toast';
 import React from 'react';
 
@@ -15,6 +15,17 @@ export function AdminDashboard() {
     const [expandedTenant, setExpandedTenant] = useState<string | null>(null);
     const [resettingPasswordUser, setResettingPasswordUser] = useState<any | null>(null);
     const [newPassword, setNewPassword] = useState('');
+
+    // User CRUD States
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedTenantForUser, setSelectedTenantForUser] = useState<any | null>(null);
+    const [newUserForm, setNewUserForm] = useState({
+        name: '',
+        email: '',
+        password: '',
+        role: 'USER'
+    });
+    const [userToDelete, setUserToDelete] = useState<any | null>(null);
 
     useEffect(() => {
         loadAdminData();
@@ -42,6 +53,47 @@ export function AdminDashboard() {
             setToast({ message: `E-mail de prospecção enviado para ${userEmail}`, type: 'success' });
         } catch (error) {
             setToast({ message: 'Erro ao enviar e-mail.', type: 'error' });
+        }
+    };
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedTenantForUser) return;
+        try {
+            await apiService.adminCreateUser({
+                ...newUserForm,
+                tenantId: selectedTenantForUser.id
+            });
+            setToast({ message: 'Usuário criado com sucesso!', type: 'success' });
+            setIsCreateModalOpen(false);
+            setNewUserForm({ name: '', email: '', password: '', role: 'USER' });
+            loadAdminData();
+        } catch (error) {
+            setToast({ message: 'Erro ao criar usuário.', type: 'error' });
+        }
+    };
+
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return;
+        try {
+            await apiService.adminDeleteUser(userToDelete.id);
+            setToast({ message: 'Usuário removido com sucesso!', type: 'success' });
+            setUserToDelete(null);
+            loadAdminData();
+        } catch (error) {
+            setToast({ message: 'Erro ao remover usuário.', type: 'error' });
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!resettingPasswordUser || !newPassword) return;
+        try {
+            await apiService.adminResetPassword(resettingPasswordUser.id, newPassword);
+            setToast({ message: 'Senha resetada com sucesso!', type: 'success' });
+            setResettingPasswordUser(null);
+            setNewPassword('');
+        } catch (error) {
+            setToast({ message: 'Erro ao resetar senha.', type: 'error' });
         }
     };
 
@@ -216,7 +268,17 @@ export function AdminDashboard() {
                                                 <td colSpan={4} className="px-10 py-4">
                                                     <div className="space-y-4">
                                                         <div className="flex items-center justify-between">
-                                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Informações de Contato</h4>
+                                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Usuários Registrados</h4>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedTenantForUser(t);
+                                                                    setIsCreateModalOpen(true);
+                                                                }}
+                                                                className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                                                            >
+                                                                <UserPlus className="w-3 h-3" />
+                                                                Adicionar Usuário
+                                                            </button>
                                                         </div>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                             {t.users.map((u: any) => (
@@ -226,13 +288,22 @@ export function AdminDashboard() {
                                                                         <p className="text-[10px] text-gray-500">{u.email}</p>
                                                                         <p className="text-[10px] font-medium text-emerald-600">{u.role}</p>
                                                                     </div>
-                                                                    <button
-                                                                        onClick={() => setResettingPasswordUser(u)}
-                                                                        className="p-2 hover:bg-orange-50 text-orange-500 rounded-md transition-colors"
-                                                                        title="Resetar Senha"
-                                                                    >
-                                                                        <Key className="w-4 h-4" />
-                                                                    </button>
+                                                                    <div className="flex gap-1">
+                                                                        <button
+                                                                            onClick={() => setResettingPasswordUser(u)}
+                                                                            className="p-2 hover:bg-orange-50 text-orange-500 rounded-md transition-colors"
+                                                                            title="Resetar Senha"
+                                                                        >
+                                                                            <Key className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setUserToDelete(u)}
+                                                                            className="p-2 hover:bg-red-50 text-red-500 rounded-md transition-colors"
+                                                                            title="Excluir Usuário"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -248,7 +319,114 @@ export function AdminDashboard() {
                 </div>
             </div>
 
-            {/* Password Reset Modal (Same as before) */}
+            {/* Create User Modal */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-8 animate-in zoom-in duration-200">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-emerald-100 rounded-full text-emerald-600">
+                                    <UserPlus className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900">Novo Usuário</h3>
+                                    <p className="text-sm text-gray-500">{selectedTenantForUser?.name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateUser} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Nome Completo</label>
+                                <input
+                                    required
+                                    type="text"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                                    value={newUserForm.name}
+                                    onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">E-mail</label>
+                                <input
+                                    required
+                                    type="email"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                                    value={newUserForm.email}
+                                    onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Senha Inicial</label>
+                                <input
+                                    required
+                                    type="password"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500"
+                                    value={newUserForm.password}
+                                    onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Role/Papel</label>
+                                <select
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                                    value={newUserForm.role}
+                                    onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })}
+                                >
+                                    <option value="USER">Usuário Comum</option>
+                                    <option value="TENANT_ADMIN">Admin Hospitalar</option>
+                                    <option value="RISK_ANALYST">Analista de Riscos</option>
+                                    <option value="SUPER_ADMIN">Super Administrador</option>
+                                </select>
+                            </div>
+                            <button
+                                type="submit"
+                                className="w-full py-3 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                            >
+                                Criar Usuário
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {userToDelete && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-8 animate-in zoom-in duration-200">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="p-4 bg-red-100 rounded-full text-red-600">
+                                <Trash2 className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900">Excluir Usuário?</h3>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Deseja realmente remover **{userToDelete.name}**? Esta ação não pode ser desfeita.
+                                </p>
+                            </div>
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={() => setUserToDelete(null)}
+                                    className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleDeleteUser}
+                                    className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100"
+                                >
+                                    Sim, Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Password Reset Modal */}
             {resettingPasswordUser && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-8 animate-in zoom-in duration-200">
@@ -281,12 +459,7 @@ export function AdminDashboard() {
                                     Cancelar
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        apiService.adminResetPassword(resettingPasswordUser.id, newPassword);
-                                        setToast({ message: 'Senha resetada com sucesso!', type: 'success' });
-                                        setResettingPasswordUser(null);
-                                        setNewPassword('');
-                                    }}
+                                    onClick={handleResetPassword}
                                     className="flex-1 px-4 py-3 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
                                 >
                                     Confirmar Reset
