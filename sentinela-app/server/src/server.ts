@@ -6,6 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+/*
 import { notificationRoutes } from './routes/notification.routes';
 import riskManagerRoutes from './routes/risk-manager.routes';
 import sectorRoutes from './routes/sector.routes';
@@ -17,6 +18,7 @@ import linkedinRoutes from './routes/linkedin.routes';
 
 import { authRoutes } from './routes/auth.routes';
 import { authenticate } from './middlewares/auth.middleware';
+*/
 // import { prisma } from './lib/prisma';
 
 console.log('--- Initializing Sentinela AI Server ---');
