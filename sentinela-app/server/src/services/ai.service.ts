@@ -3,35 +3,20 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export class AIService {
-    private static lastTrace: string[] = [];
-
-    public static getTrace() {
-        return AIService.lastTrace;
-    }
-
-    private logTrace(msg: string) {
-        const entry = `[${new Date().toISOString()}] ${msg}`;
-        AIService.lastTrace.push(entry);
-        if (AIService.lastTrace.length > 50) AIService.lastTrace.shift();
-        console.log(msg);
-    }
-
-    private async callWithRetry(prompt: string, maxRetries: number = 1): Promise<string> {
+    private async callWithRetry(prompt: string, maxRetries: number = 2): Promise<string> {
         const apiKey = process.env.GROQ_API_KEY;
         if (!apiKey) {
-            this.logTrace('AIService ERROR: GROQ_API_KEY is missing!');
+            console.error('AIService ERROR: GROQ_API_KEY is missing!');
             throw new Error("AI Service not configured.");
         }
 
         let attempts = 0;
         while (attempts <= maxRetries) {
             try {
-                this.logTrace(`AI Attempt ${attempts + 1} starting (via Fetch)...`);
-
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${apiKey}`,
+                        'Authorization': `Bearer ${apiKey} `,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -44,17 +29,16 @@ export class AIService {
 
                 if (!response.ok) {
                     const errorBody = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorBody.substring(0, 100)}`);
+                    throw new Error(`HTTP ${response.status}: ${errorBody.substring(0, 100)} `);
                 }
 
                 const data = await response.json();
-                this.logTrace('AI Attempt SUCCESS');
                 return data.choices?.[0]?.message?.content || '';
             } catch (error: any) {
                 attempts++;
-                this.logTrace(`AI Attempt ${attempts} FAILED: ${error.message}`);
+                console.error(`AI Attempt ${attempts} FAILED: ${error.message} `);
                 if (attempts > maxRetries) throw error;
-                await new Promise(res => setTimeout(res, 1000 * attempts));
+                await new Promise(res => setTimeout(res, 2000 * attempts));
             }
         }
         throw new Error("AI Indisponível.");
@@ -67,7 +51,7 @@ export class AIService {
                 const parsed = typeof investigationData === 'string' ? JSON.parse(investigationData) : investigationData;
                 if (Array.isArray(parsed)) {
                     formattedInvestigation = parsed.map((item: any) =>
-                        `- PERGUNTA: ${item.text || item.question}\n  RESPOSTA: ${item.answer}`
+                        `- PERGUNTA: ${item.text || item.question} \n  RESPOSTA: ${item.answer} `
                     ).join('\n');
                 } else {
                     formattedInvestigation = String(investigationData);
@@ -78,30 +62,30 @@ export class AIService {
         }
 
         const prompt = `
-            Atue como um Enfermeiro Gestor de Risco Hospitalar.
-            Realize uma Análise de Causa Raiz (ACR) detalhada para o evento descrito.
+            Atue como um Enfermeiro Gestor de Risco Hospitalar experiente(ONA 3).
+            Realize uma Análise de Causa Raiz(ACR) detalhada para o evento descrito.
             Retorne APENAS um JSON válido.
 
-            DESCRIÇÃO: "${description}"
-            TIPO: "${eventType}"
+    DESCRIÇÃO: "${description}"
+TIPO: "${eventType}"
             INVESTIGAÇÃO PRELIMINAR: ${formattedInvestigation || 'N/A'}
 
-            Estrutura JSON (chaves em português):
-            {
-                "rootCauseConclusion": "...",
-                "suggestedDeadline": "dd/mm/yyyy",
-                "ishikawa": { "metodo": "...", "material": "...", "mao_de_obra": "...", "meio_ambiente": "...", "medida": "...", "maquina": "..." },
-                "fiveWhys": { "why1": "...", "why2": "...", "why3": "...", "why4": "...", "why5": "...", "rootCause": "..." },
-                "actionPlan": [{ "what": "...", "why": "...", "who": "...", "where": "...", "when": "...", "how": "...", "howMuch": "..." }]
-            }
-        `;
+            Estrutura JSON(chaves em português):
+{
+    "rootCauseConclusion": "...",
+        "suggestedDeadline": "dd/mm/yyyy",
+            "ishikawa": { "metodo": "...", "material": "...", "mao_de_obra": "...", "meio_ambiente": "...", "medida": "...", "maquina": "..." },
+    "fiveWhys": { "why1": "...", "why2": "...", "why3": "...", "why4": "...", "why5": "...", "rootCause": "..." },
+    "actionPlan": [{ "what": "...", "why": "...", "who": "...", "where": "...", "when": "...", "how": "...", "howMuch": "..." }]
+}
+`;
 
         try {
             const text = await this.callWithRetry(prompt);
-            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const cleanText = text.replace(/```json / g, '').replace(/```/g, '').trim();
             return JSON.parse(cleanText);
         } catch (error: any) {
-            this.logTrace(`RCA Error: ${error.message}`);
+            console.error("Fallback RootCause Error:", error.message);
             return this.generateOfflineAnalysis(description);
         }
     }
@@ -121,16 +105,15 @@ export class AIService {
             IMPORTANTE: Retorne APENAS o JSON.
         `;
         try {
-            this.logTrace(`AnalyzeIncident starting for: ${description.substring(0, 20)}...`);
             const text = await this.callWithRetry(prompt);
             const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(clean);
         } catch (e: any) {
-            this.logTrace(`AnalyzeIncident FATAL: ${e.message}`);
+            console.error("AI Analyze Incident Failed:", e.message);
             return {
                 eventType: 'ERRO',
                 riskLevel: 'MODERADO',
-                recommendation: `Falha na análise automática. Erro: ${e.message.substring(0, 50)}...`
+                recommendation: 'Falha na análise automática. Por favor, revise manualmente.'
             };
         }
     }
@@ -139,12 +122,12 @@ export class AIService {
         const prompt = `
             Contexto do Incidente: ${JSON.stringify(context)}
             Usuário: "${message}"
-            Responda como um especialista em gestão de risco.
+            Responda como um especialista em gestão de risco hospitalar.
         `;
         try {
             return await this.callWithRetry(prompt);
         } catch (e) {
-            return "Desculpe, não consigo responder no momento.";
+            return "Desculpe, não consigo responder no momento devido a uma falha na conexão.";
         }
     }
 
@@ -160,41 +143,41 @@ export class AIService {
         const formattedDate = nextWeek.toLocaleDateString('pt-BR');
 
         let analysis = {
-            rootCauseConclusion: "⚠️ ANÁLISE OFFLINE: IA indisponível.",
+            rootCauseConclusion: "⚠️ ANÁLISE OFFLINE: IA indisponível no momento.",
             suggestedDeadline: formattedDate,
             ishikawa: {
-                metodo: "Revisar protocolos.",
-                material: "Verificar insumos.",
-                mao_de_obra: "Avaliar equipe.",
-                meio_ambiente: "Verificar ambiente.",
-                medida: "Monitorar indicadores.",
-                maquina: "Verificar equipamentos."
+                metodo: "Revisar protocolos atuais.",
+                material: "Verificar disponibilidade de insumos.",
+                mao_de_obra: "Avaliar dimensionamento e treinamento.",
+                meio_ambiente: "Verificar condições ambientais.",
+                medida: "Monitorar indicadores de segurança.",
+                maquina: "Verificar funcionamento de equipamentos."
             },
             fiveWhys: {
-                why1: "Evento ocorreu.",
-                why2: "Falha na segurança.",
-                why3: "Processo falhou.",
-                why4: "Fatores não mitigados.",
-                why5: "Ausência de controle.",
-                rootCause: "Falha sistêmica."
+                why1: "Evento adverso ocorreu.",
+                why2: "Falha barreira segurança.",
+                why3: "Processo não seguiu fluxo.",
+                why4: "Fatores contribuintes não mitigados.",
+                why5: "Ausência de controle preventivo.",
+                rootCause: "Falha sistêmica (IA indisponível)."
             },
             actionPlan: [
                 {
                     what: "Investigação detalhada",
-                    why: "Determinar causa raiz",
+                    why: "Determinar causa raiz específica",
                     who: "Gestor de Risco",
-                    where: "Setor",
+                    where: "Setor do evento",
                     when: "Curto Prazo",
-                    how: "Reunião",
-                    howMuch: "Sem custo"
+                    how: "Reunião com equipe",
+                    howMuch: "Sem custo extra"
                 }
             ]
         };
 
         if (descLower.includes("queda")) {
-            analysis.rootCauseConclusion = "POSSÍVEL RISCO DE QUEDA.";
+            analysis.rootCauseConclusion = "POSSÍVEL RISCO DE QUEDA: Analisar score de Morse e condições do leito.";
         } else if (descLower.includes("medicamento") || descLower.includes("medicação")) {
-            analysis.rootCauseConclusion = "ERRO DE MEDICAÇÃO.";
+            analysis.rootCauseConclusion = "ERRO DE MEDICAÇÃO: Revisar processos de dispensação e administração.";
         }
 
         return analysis;

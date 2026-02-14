@@ -2,18 +2,6 @@
     "outputDirectory": "client/dist",
     "rewrites": [
         {
-            "source": "/api/debug",
-            "destination": "/api/debug.ts"
-        },
-        {
-            "source": "/api/debug_ai",
-            "destination": "/api/debug_ai.ts"
-        },
-        {
-            "source": "/api/debug_net",
-            "destination": "/api/debug_net.ts"
-        },
-        {
             "source": "/api/(.*)",
             "destination": "/api/index.ts"
         },
