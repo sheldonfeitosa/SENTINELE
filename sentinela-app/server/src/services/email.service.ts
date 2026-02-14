@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 
 export class EmailService {
     private _resend: Resend | null = null;
-    private fromEmail = 'onboarding@resend.dev'; // Default Resend testing email
+    private fromEmail = 'qualidade@inmceb.med.br'; // Standardized email
 
     private get resend() {
         if (!this._resend) {
@@ -448,7 +448,7 @@ export class EmailService {
         // Send to yourself (Admin)
         await this.resend.emails.send({
             from: this.fromEmail,
-            to: process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com', // Fallback to provided email
+            to: process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br', // Updated fallback
             subject: `[LEAD] Novo Teste Grátis: ${data.name} - ${data.hospital}`,
             html
         });
