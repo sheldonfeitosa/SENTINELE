@@ -39,6 +39,7 @@ export function TratativaPage() {
     const [deferralLoading, setDeferralLoading] = useState(false);
     const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [hospitalName, setHospitalName] = useState('INMCEB');
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
@@ -129,6 +130,20 @@ export function TratativaPage() {
                 message: 'Modo de Indeferimento: Confirme para notificar o gestor.',
                 type: 'error'
             });
+        }
+    }, []);
+
+    useEffect(() => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                if (user.tenant?.name) {
+                    setHospitalName(user.tenant.name);
+                }
+            } catch (e) {
+                console.error('Error loading tenant name');
+            }
         }
     }, []);
 
@@ -302,7 +317,7 @@ export function TratativaPage() {
 
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(10);
-        doc.text('INMCEB INSTITUTO DE MEDICINA DO COMPORTAMENTO EURÍPEDES BARSANULFO', margin, 15);
+        doc.text(hospitalName, margin, 15);
 
         doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
@@ -552,7 +567,7 @@ export function TratativaPage() {
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="bg-[#003366] text-white p-6 flex justify-between items-center">
                     <div>
-                        <h2 className="text-sm font-bold text-blue-100 mb-1">INMCEB INSTITUTO DE MEDICINA DO COMPORTAMENTO EURÍPEDES BARSANULFO</h2>
+                        <h2 className="text-sm font-bold text-blue-100 mb-1">{hospitalName}</h2>
                         <h1 className="text-xl font-bold">Tratativa de Evento #{notification.id}</h1>
                         <div className="flex gap-4 mt-2 text-blue-200 text-sm">
                             <p>Setor Notificado: <span className="font-semibold text-white">{notification.setor}</span></p>

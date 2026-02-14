@@ -25,17 +25,30 @@ export function RiskDashboard() {
     const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
     const [highlightedId, setHighlightedId] = useState<number | null>(null);
     const [reanalyzingId, setReanalyzingId] = useState<number | null>(null);
+    const [hospitalName, setHospitalName] = useState('INMCEB');
 
     // Email Modal State
     const [emailModalOpen, setEmailModalOpen] = useState(false);
     const [selectedEmailNotification, setSelectedEmailNotification] = useState<{ id: number, sector: string } | null>(null);
     const [emailLoading, setEmailLoading] = useState(false);
 
-    // Initialize highlighted row from localStorage
+    // Initialize highlighted row and hospital name from localStorage
     useEffect(() => {
         const saved = localStorage.getItem('sentinela_selected_notification');
         if (saved) {
             setHighlightedId(Number(saved));
+        }
+
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                if (user.tenant?.name) {
+                    setHospitalName(user.tenant.name);
+                }
+            } catch (e) {
+                console.error('Failed to parse user data');
+            }
         }
     }, []);
 
@@ -330,7 +343,7 @@ export function RiskDashboard() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div>
-                    <h2 className="text-xl font-bold text-[#003366]">INMCEB INSTITUTO DE MEDICINA DO COMPORTAMENTO EURÍPEDES BARSANULFO</h2>
+                    <h2 className="text-xl font-bold text-[#003366]">{hospitalName}</h2>
                     <p className="text-sm text-gray-500">Monitoramento em tempo real de eventos adversos</p>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
