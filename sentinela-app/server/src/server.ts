@@ -15,11 +15,11 @@ import { prisma } from './lib/prisma';
 
 import riskManagerRoutes from './routes/risk-manager.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import articleRoutes from './routes/article.routes';
+import linkedinRoutes from './routes/linkedin.routes';
 /*
 import webhookRoutes from './routes/webhook.routes';
 import subscriptionRoutes from './routes/subscription.routes';
-import articleRoutes from './routes/article.routes';
-import linkedinRoutes from './routes/linkedin.routes';
 */
 
 console.log('--- Initializing Sentinela AI Server ---');
@@ -43,7 +43,7 @@ app.get('/api/health', async (req, res) => {
 
     res.status(200).json({
         status: 'ok',
-        version: '2.0.9-managers-dash',
+        version: '2.1.0-art-link',
         db_status: dbStatus,
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
@@ -58,6 +58,9 @@ app.use('/api/sectors', sectorRoutes);
 // Re-enabling protected routes
 app.use('/api/managers', authenticate, riskManagerRoutes);
 app.use('/api/dashboard', authenticate, dashboardRoutes);
+
+app.use('/api/articles', articleRoutes);
+app.use('/api/linkedin', linkedinRoutes);
 
 app.get('/', (req, res) => {
     res.send('Sentinela AI API is running - STABLE-RESTORE');
