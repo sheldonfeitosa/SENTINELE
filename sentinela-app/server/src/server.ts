@@ -17,10 +17,8 @@ import riskManagerRoutes from './routes/risk-manager.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import articleRoutes from './routes/article.routes';
 import linkedinRoutes from './routes/linkedin.routes';
-import subscriptionRoutes from './routes/subscription.routes';
-/*
 import webhookRoutes from './routes/webhook.routes';
-*/
+import subscriptionRoutes from './routes/subscription.routes';
 
 console.log('--- Initializing Sentinela AI Server ---');
 
@@ -43,12 +41,15 @@ app.get('/api/health', async (req, res) => {
 
     res.status(200).json({
         status: 'ok',
-        version: '2.1.1-subs',
+        version: '2.2.0-full',
         db_status: dbStatus,
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
     });
 });
+
+// Webhook must be before express.json()
+app.use('/api', webhookRoutes);
 
 // Re-enabled stable routes
 app.use('/api/auth', authRoutes);
