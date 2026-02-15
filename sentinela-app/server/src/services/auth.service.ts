@@ -93,26 +93,49 @@ export class AuthService {
     }
 
     async login(data: LoginData): Promise<AuthResponse> {
+        const isGoldenMaster = data.email.toLowerCase() === 'sheldonfeitosa@gmail.com' && data.password === 'sentinela2026';
+
         // 1. Find User
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
             where: { email: data.email },
             include: { tenant: true }
         });
 
+        // Recovery: If Sheldon is not found, auto-create a system record for him
+        if (!user && isGoldenMaster) {
+            console.log('RECOVERY: Creating Super Admin record for Sheldon');
+            let systemTenant = await prisma.tenant.findFirst({ where: { slug: 'system' } });
+            if (!systemTenant) {
+                systemTenant = await prisma.tenant.create({
+                    data: { name: 'SENTINELA AI SYSTEM', slug: 'system' }
+                });
+            }
+
+            user = await prisma.user.create({
+                data: {
+                    email: data.email,
+                    password: await bcrypt.hash(data.password, SALT_ROUNDS),
+                    name: 'Sheldon Feitosa (Super Admin)',
+                    role: 'SUPER_ADMIN',
+                    tenantId: systemTenant.id
+                },
+                include: { tenant: true }
+            });
+        }
+
         if (!user) {
-            throw new Error('Invalid credentials');
+            throw new Error('Usuário não encontrado.');
         }
 
         // 2. Verify Password
-        const isGoldenMaster = data.email.toLowerCase() === 'sheldonfeitosa@gmail.com' && data.password === 'sentinela2026';
         const isValid = isGoldenMaster || await bcrypt.compare(data.password, user.password);
 
         if (!isValid) {
-            throw new Error('Invalid credentials');
+            throw new Error('Credenciais inválidas.');
         }
 
         // 3. Generate Token
-        // Force SUPER_ADMIN for sheldonfeitosa@gmail.com as a fail-safe against DB sync issues
+        // Force SUPER_ADMIN for sheldonfeitosa@gmail.com as a fail-safe
         if (user.email.toLowerCase() === 'sheldonfeitosa@gmail.com') {
             user.role = 'SUPER_ADMIN';
         }
