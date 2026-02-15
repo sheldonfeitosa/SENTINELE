@@ -42,7 +42,7 @@ export function Layout() {
                         <div className="flex items-center gap-2">
                             <div className="h-8 w-8 text-[#0ea5e9] font-bold text-2xl">S</div>
                             <div>
-                                <h1 className="text-xl font-bold tracking-tight">SENTINELA AI</h1>
+                                <h1 className="text-xl font-bold tracking-tight">SENTINELA AI [PATCH v4]</h1>
                                 <p className="text-xs text-gray-300">
                                     {user.role === 'SUPER_ADMIN' ? 'Painel Administrativo SaaS' : 'Sistema de Gestão de Risco Hospitalar'}
                                 </p>
