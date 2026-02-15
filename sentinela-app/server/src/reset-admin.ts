@@ -1,7 +1,7 @@
 
 import dotenv from 'dotenv';
 import path from 'path';
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: 'c:\\Users\\sheld\\sentinela ai\\sentinela-app\\server\\.env' });
 
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';

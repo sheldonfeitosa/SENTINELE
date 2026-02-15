@@ -33,17 +33,22 @@ const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.Rea
 
   // Golden Rule: Always treat sheldonfeitosa@gmail.com as SUPER_ADMIN in the frontend
   if (user?.email?.toLowerCase() === 'sheldonfeitosa@gmail.com') {
+    console.log('[DEBUG] Golden Rule Triggered: Forcing SUPER_ADMIN for sheldonfeitosa@gmail.com');
     user.role = 'SUPER_ADMIN';
   }
 
   if (!token) {
+    console.log('[DEBUG] No token found, redirecting to /login');
     return <Navigate to="/login" replace />;
   }
 
   const userRole = user?.role;
+  console.log('[DEBUG] current User Role:', userRole);
+  console.log('[DEBUG] requireSaaS flag:', requireSaaS);
 
   // Isolation: Super Admin belongs ONLY in /admin
   if (userRole === 'SUPER_ADMIN' && !requireSaaS) {
+    console.log('[DEBUG] Super Admin in non-SaaS route, redirecting to /admin');
     return <Navigate to="/admin" replace />;
   }
 

@@ -28,8 +28,10 @@ export function Layout() {
     }
 
     // Golden Rule: Always treat sheldonfeitosa@gmail.com as SUPER_ADMIN
-    if (user?.email?.toLowerCase() === 'sheldonfeitosa@gmail.com') {
+    const rawUser = localStorage.getItem('user');
+    if (user?.email?.toLowerCase() === 'sheldonfeitosa@gmail.com' || (rawUser && rawUser.includes('sheldonfeitosa@gmail.com'))) {
         user.role = 'SUPER_ADMIN';
+        if (!user.email) user.email = 'sheldonfeitosa@gmail.com';
     }
 
     return (

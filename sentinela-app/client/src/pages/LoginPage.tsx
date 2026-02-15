@@ -54,10 +54,13 @@ const LoginPage: React.FC = () => {
                 password
             });
 
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+            const userData = response.data.user;
+            if (!userData.email) userData.email = email; // Fallback to login email
 
-            console.log('[Login] User Role:', response.data.user.role);
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(userData));
+
+            console.log('[Login] User Role:', userData.role);
 
             if (response.data.user.role === 'SUPER_ADMIN') {
                 navigate('/admin');
