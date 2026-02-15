@@ -59,16 +59,22 @@ export class NotificationService {
 
         if (!tenantId) throw new Error('System configuration error: No active tenant context found.');
 
+        const parseDate = (dateVal: any) => {
+            if (!dateVal) return null;
+            const d = new Date(dateVal);
+            return isNaN(d.getTime()) ? null : d;
+        };
+
         const incidentData = {
             eventTypeAi: aiResult.eventType,
             riskLevel: data.tipo_notificacao === 'NÃO CONFORMIDADE' ? 'NA' : (aiResult.riskLevel as any),
             aiAnalysis: aiResult.recommendation,
             patientName: data.paciente || data.patientName,
             motherName: data.nome_mae || data.motherName || null,
-            birthDate: (data.nascimento || data.birthDate) ? new Date(data.nascimento || data.birthDate) : null,
+            birthDate: parseDate(data.nascimento || data.birthDate),
             sex: data.sexo || data.sex || null,
-            admissionDate: (data.data_internacao || data.admissionDate) ? new Date(data.data_internacao || data.admissionDate) : null,
-            eventDate: (data.data_evento || data.eventDate) ? new Date(data.data_evento || data.eventDate) : new Date(),
+            admissionDate: parseDate(data.data_internacao || data.admissionDate),
+            eventDate: parseDate(data.data_evento || data.eventDate) || new Date(),
             period: data.periodo || data.period || null,
             sector: data.setor || data.sector,
             notifySector: data.setor_notificado || data.notifySector || data.setor || data.sector || "Não Informado",

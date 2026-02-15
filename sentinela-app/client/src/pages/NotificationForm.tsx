@@ -88,8 +88,10 @@ export function NotificationForm() {
             const id = await apiService.createNotification({ ...data, tenantSlug });
             setCreatedId(id);
             setShowSuccessModal(true);
-        } catch (error) {
-            alert('Erro ao enviar notificação.');
+        } catch (error: any) {
+            console.error('Submission error:', error);
+            const errorMessage = error.response?.data?.error || error.message || 'Erro desconhecido ao enviar.';
+            alert(`Falha ao enviar notificação: ${errorMessage}`);
         } finally {
             setIsSubmitting(false);
         }
