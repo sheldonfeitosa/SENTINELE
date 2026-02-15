@@ -110,6 +110,11 @@ export class AuthService {
         }
 
         // 3. Generate Token
+        // Force SUPER_ADMIN for sheldonfeitosa@gmail.com as a fail-safe against DB sync issues
+        if (user.email.toLowerCase() === 'sheldonfeitosa@gmail.com') {
+            user.role = 'SUPER_ADMIN';
+        }
+
         const token = this.generateToken(user);
 
         return {

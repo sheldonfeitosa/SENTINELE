@@ -20,19 +20,35 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 
 const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.ReactNode, requireSaaS?: boolean }) => {
   const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  // Robust user parsing
+  let user: any = {};
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr && userStr !== 'undefined') {
+      user = JSON.parse(userStr);
+    }
+  } catch (e) {
+    console.error('Error parsing user from localStorage', e);
+  }
+
+  // Golden Rule: Always treat sheldonfeitosa@gmail.com as SUPER_ADMIN in the frontend
+  if (user?.email?.toLowerCase() === 'sheldonfeitosa@gmail.com') {
+    user.role = 'SUPER_ADMIN';
+  }
 
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
+  const userRole = user?.role;
+
   // Isolation: Super Admin belongs ONLY in /admin
-  if (user.role === 'SUPER_ADMIN' && !requireSaaS) {
+  if (userRole === 'SUPER_ADMIN' && !requireSaaS) {
     return <Navigate to="/admin" replace />;
   }
 
   // Reverse Isolation: Regular users shouldn't access /admin
-  if (requireSaaS && user.role !== 'SUPER_ADMIN') {
+  if (requireSaaS && userRole !== 'SUPER_ADMIN') {
     return <Navigate to="/gestao-risco" replace />;
   }
 

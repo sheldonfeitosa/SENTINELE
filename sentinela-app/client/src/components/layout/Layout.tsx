@@ -17,7 +17,20 @@ export function Layout() {
         navigate('/login');
     };
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    let user: any = {};
+    try {
+        const userStr = localStorage.getItem('user');
+        if (userStr && userStr !== 'undefined') {
+            user = JSON.parse(userStr);
+        }
+    } catch (e) {
+        user = {};
+    }
+
+    // Golden Rule: Always treat sheldonfeitosa@gmail.com as SUPER_ADMIN
+    if (user?.email?.toLowerCase() === 'sheldonfeitosa@gmail.com') {
+        user.role = 'SUPER_ADMIN';
+    }
 
     return (
         <div className="min-h-screen bg-[#F4F6F9] font-sans text-gray-800">
