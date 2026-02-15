@@ -8,7 +8,7 @@ import {
 
 const LoginPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'login' | 'prospect'>('login');
-    const [email, setEmail] = useState('sheldonfeitosa@gmail.com');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
