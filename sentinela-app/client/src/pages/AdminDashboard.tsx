@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../services/ApiService';
-import { Building2, Users, Search, Key, CreditCard, ChevronDown, ChevronUp, DollarSign, TrendingUp, Mail, UserPlus, Trash2, X } from 'lucide-react';
+import { Building2, Users, Search, Key, CreditCard, ChevronDown, ChevronUp, DollarSign, TrendingUp, Mail, UserPlus, Trash2, X, Lock, Unlock } from 'lucide-react';
 import { Toast, type ToastType } from '../components/ui/Toast';
 import React from 'react';
 
@@ -240,13 +240,17 @@ export function AdminDashboard() {
 
                                 return (
                                     <React.Fragment key={t.id}>
-                                        <tr className="hover:bg-gray-50 transition-colors">
+                                        <tr className={`hover:bg-gray-50 transition-colors ${mainUser?.subscriptionStatus === 'suspended' ? 'opacity-60 bg-gray-50/50' : ''}`}>
                                             <td className="px-6 py-4">
                                                 <div className="font-bold text-gray-900">{t.name}</div>
                                                 <div className="text-xs text-gray-500">slug: {t.slug}</div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                {isTrial ? (
+                                                {mainUser?.subscriptionStatus === 'suspended' ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 uppercase border border-gray-200">
+                                                        Acesso Suspenso
+                                                    </span>
+                                                ) : isTrial ? (
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 uppercase">
                                                         Em Teste
                                                     </span>
@@ -285,10 +289,10 @@ export function AdminDashboard() {
                                                     )}
                                                     <button
                                                         onClick={() => handleToggleSubscription(t.id, mainUser?.subscriptionStatus)}
-                                                        className={`p-2 rounded-lg transition-colors ${mainUser?.subscriptionStatus === 'suspended' ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}
-                                                        title={mainUser?.subscriptionStatus === 'suspended' ? "Reativar Hospital" : "Suspender Hospital"}
+                                                        className={`p-2 rounded-lg transition-colors ${mainUser?.subscriptionStatus === 'suspended' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}
+                                                        title={mainUser?.subscriptionStatus === 'suspended' ? "Reativar Acesso (Liberar)" : "Suspender Acesso (Bloquear)"}
                                                     >
-                                                        <Key className="w-4 h-4" />
+                                                        {mainUser?.subscriptionStatus === 'suspended' ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                                                     </button>
                                                     <button
                                                         onClick={() => setTenantToDelete(t)}
