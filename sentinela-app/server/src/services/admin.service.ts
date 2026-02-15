@@ -99,4 +99,39 @@ export class AdminService {
             where: { id: userId }
         });
     }
+
+    async deleteTenant(tenantId: string) {
+        return prisma.$transaction(async (tx) => {
+            // 1. Delete Articles associated with users of this tenant
+            const users = await tx.user.findMany({
+                where: { tenantId },
+                select: { id: true }
+            });
+            const userIds = users.map(u => u.id);
+
+            await tx.article.deleteMany({
+                where: { authorId: { in: userIds } }
+            });
+
+            // 2. Delete Incidents
+            await tx.incident.deleteMany({
+                where: { tenantId }
+            });
+
+            // 3. Delete Sectors
+            await tx.sector.deleteMany({
+                where: { tenantId }
+            });
+
+            // 4. Delete Users
+            await tx.user.deleteMany({
+                where: { tenantId }
+            });
+
+            // 5. Delete Tenant
+            return tx.tenant.delete({
+                where: { id: tenantId }
+            });
+        });
+    }
 }

@@ -100,4 +100,17 @@ export class AdminController {
             res.status(500).json({ error: 'Erro ao excluir usuário', details: error.message });
         }
     };
+
+    deleteTenant = async (req: AuthRequest, res: Response) => {
+        try {
+            const { id } = req.params;
+            if (!id) {
+                return res.status(400).json({ error: 'ID do hospital é obrigatório.' });
+            }
+            await this.service.deleteTenant(id);
+            res.json({ message: 'Hospital e todos os dados associados foram excluídos com sucesso.' });
+        } catch (error: any) {
+            res.status(500).json({ error: 'Erro ao excluir hospital', details: error.message });
+        }
+    };
 }

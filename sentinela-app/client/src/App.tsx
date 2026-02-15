@@ -54,6 +54,13 @@ const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.Rea
         return <Navigate to="/admin" replace />;
     }
 
+    // Suspension Rule: Block users from suspended tenants
+    if (userRole !== 'SUPER_ADMIN' && user?.subscriptionStatus === 'suspended') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return <Navigate to="/login?error=account_suspended" replace />;
+    }
+
     // Reverse Isolation: Regular users shouldn't access /admin
     if (requireSaaS && userRole !== 'SUPER_ADMIN') {
         return <Navigate to="/gestao-risco" replace />;

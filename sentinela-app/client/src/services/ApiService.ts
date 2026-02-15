@@ -229,6 +229,10 @@ class ApiService {
         await axios.delete(`${API_BASE}/admin/users/${userId}`);
     }
 
+    async adminDeleteTenant(id: string): Promise<void> {
+        await axios.delete(`${API_BASE}/admin/tenants/${id}`);
+    }
+
     async resetPassword(email: string): Promise<any> {
         const response = await axios.post(`${API_BASE}/auth/reset-password`, { email });
         return response.data;

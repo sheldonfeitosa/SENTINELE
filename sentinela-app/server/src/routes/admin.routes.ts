@@ -17,5 +17,6 @@ router.put('/update-subscription', controller.updateSubscription);
 router.post('/send-sales-email', controller.sendSalesEmail);
 router.post('/users', controller.createUser);
 router.delete('/users/:id', controller.deleteUser);
+router.delete('/tenants/:id', controller.deleteTenant);
 
 export default router;

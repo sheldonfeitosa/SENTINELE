@@ -26,6 +26,7 @@ export function AdminDashboard() {
         role: 'USER'
     });
     const [userToDelete, setUserToDelete] = useState<any | null>(null);
+    const [tenantToDelete, setTenantToDelete] = useState<any | null>(null);
 
     useEffect(() => {
         loadAdminData();
@@ -82,6 +83,32 @@ export function AdminDashboard() {
             loadAdminData();
         } catch (error) {
             setToast({ message: 'Erro ao remover usuário.', type: 'error' });
+        }
+    };
+
+    const handleDeleteTenant = async () => {
+        if (!tenantToDelete) return;
+        try {
+            await apiService.adminDeleteTenant(tenantToDelete.id);
+            setToast({ message: 'Hospital e todos os dados removidos com sucesso!', type: 'success' });
+            setTenantToDelete(null);
+            loadAdminData();
+        } catch (error) {
+            setToast({ message: 'Erro ao remover hospital.', type: 'error' });
+        }
+    };
+
+    const handleToggleSubscription = async (tenantId: string, currentStatus: string) => {
+        const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+        try {
+            await apiService.adminUpdateSubscription(tenantId, newStatus);
+            setToast({
+                message: `Hospital ${newStatus === 'suspended' ? 'suspenso' : 'ativado'} com sucesso!`,
+                type: 'success'
+            });
+            loadAdminData();
+        } catch (error) {
+            setToast({ message: 'Erro ao atualizar status do hospital.', type: 'error' });
         }
     };
 
@@ -257,6 +284,20 @@ export function AdminDashboard() {
                                                         </button>
                                                     )}
                                                     <button
+                                                        onClick={() => handleToggleSubscription(t.id, mainUser?.subscriptionStatus)}
+                                                        className={`p-2 rounded-lg transition-colors ${mainUser?.subscriptionStatus === 'suspended' ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}
+                                                        title={mainUser?.subscriptionStatus === 'suspended' ? "Reativar Hospital" : "Suspender Hospital"}
+                                                    >
+                                                        <Key className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setTenantToDelete(t)}
+                                                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                                                        title="Excluir Hospital (Permanente)"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
                                                         onClick={() => setExpandedTenant(expandedTenant === t.id ? null : t.id)}
                                                         className="p-2 text-gray-400 hover:text-gray-600"
                                                     >
@@ -398,7 +439,7 @@ export function AdminDashboard() {
             {/* Delete Confirmation Modal */}
             {userToDelete && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-8 animate-in zoom-in duration-200">
+                    <div className="bg-white rounded-xl shadow-xl max-sm:max-w-xs w-full p-8 animate-in zoom-in duration-200">
                         <div className="flex flex-col items-center text-center space-y-4">
                             <div className="p-4 bg-red-100 rounded-full text-red-600">
                                 <Trash2 className="w-8 h-8" />
@@ -421,6 +462,42 @@ export function AdminDashboard() {
                                     className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100"
                                 >
                                     Sim, Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Tenant Confirmation Modal */}
+            {tenantToDelete && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-8 animate-in zoom-in duration-200">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="p-4 bg-red-100 rounded-full text-red-600 animate-pulse">
+                                <Trash2 className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-[#003366]">Excluir Hospital?</h3>
+                                <p className="text-sm text-red-600 font-bold mt-2 uppercase tracking-tight">
+                                    CUIDADO: Ação Irreversível!
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Isso apagará permanentemente o hospital **{tenantToDelete.name}**, todos os seus usuários, setores e dados de incidentes.
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-3 w-full">
+                                <button
+                                    onClick={handleDeleteTenant}
+                                    className="w-full px-4 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100"
+                                >
+                                    Confirmar Exclusão Total
+                                </button>
+                                <button
+                                    onClick={() => setTenantToDelete(null)}
+                                    className="w-full px-4 py-3 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200 transition-colors"
+                                >
+                                    Cancelar
                                 </button>
                             </div>
                         </div>
