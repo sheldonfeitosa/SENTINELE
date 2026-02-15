@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 export class EmailService {
     private _resend: Resend | null = null;
     private fromEmail = 'qualidade@inmceb.med.br'; // Standardized email
+    private fallbackFrom = 'onboarding@resend.dev';
 
     private get resend() {
         if (!this._resend) {
@@ -42,16 +43,25 @@ export class EmailService {
         `;
 
         try {
-            await this.resend.emails.send({
+            const { data, error } = await this.resend.emails.send({
                 from: this.fromEmail,
                 to: email,
                 subject: 'Bem-vindo ao Sentinela AI - Suas Credenciais de Acesso',
                 html
             });
-            console.log(`✅ Welcome Email sent to ${email}`);
+
+            if (error) {
+                console.warn('⚠️ Standard email failed, trying fallback:', error);
+                await this.resend.emails.send({
+                    from: this.fallbackFrom,
+                    to: email,
+                    subject: 'Bem-vindo ao Sentinela AI - Suas Credenciais de Acesso',
+                    html
+                });
+            }
+            console.log(`✅ Welcome Email processed for ${email}`);
         } catch (error) {
             console.error('❌ Failed to send Welcome Email:', error);
-            // Don't throw, allow flow to continue even if email fails (for dev mainly)
         }
     }
 
@@ -452,15 +462,28 @@ export class EmailService {
         `;
 
         try {
-            await this.resend.emails.send({
+            console.log(`📧 Attempting Password Reset Email for ${email}`);
+            const { data, error } = await this.resend.emails.send({
                 from: this.fromEmail,
                 to: email,
                 subject: 'Sua Nova Senha - Sentinela AI',
                 html
             });
-            console.log(`✅ Password reset email sent to ${email}`);
+
+            if (error) {
+                console.warn('⚠️ Standard reset email failed, trying fallback:', error);
+                const fallbackResult = await this.resend.emails.send({
+                    from: this.fallbackFrom,
+                    to: email,
+                    subject: 'Sua Nova Senha - Sentinela AI',
+                    html
+                });
+                console.log('✅ Fallback reset email result:', fallbackResult);
+            } else {
+                console.log('✅ Standard reset email sent:', data);
+            }
         } catch (error) {
-            console.error('❌ Failed to send password reset email:', error);
+            console.error('❌ Critical failure in password reset email:', error);
             throw error;
         }
     }
