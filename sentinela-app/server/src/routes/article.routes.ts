@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { ArticleController } from '../controllers/article.controller';
+import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 const controller = new ArticleController();
 
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);
-router.post('/', controller.create);
+router.post('/', authenticate, controller.create);
 
 // LinkedIn Auth Routes
 import { linkedinService } from '../services/linkedin.service';
