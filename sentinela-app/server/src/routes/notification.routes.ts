@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { NotificationController } from '../controllers/notification.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+import { authenticate, optionalAuthenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 const controller = new NotificationController();
 
-router.post('/', controller.create); // Public for anonymous reporting
+router.post('/', optionalAuthenticate, controller.create); // Public but collects user context if logged in
 router.get('/', authenticate, controller.getAll);
 router.get('/:id', authenticate, controller.getById);
 router.put('/:id', authenticate, controller.update);
