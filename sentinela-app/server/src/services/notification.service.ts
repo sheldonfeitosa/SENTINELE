@@ -97,8 +97,8 @@ export class NotificationService {
             const targetSector = data.setor_notificado || data.setor;
             const sectorManagers = await this.riskManagerRepo.findAllBySector(targetSector, tenantId);
 
-            // Filter for GESTOR_SETOR or ADMIN (optional, but good practice)
-            const notifyManagers = sectorManagers.filter(m => m.role === 'GESTOR_SETOR' || m.role === 'ADMIN');
+            // Notify all users found in the sector (Removed strict role check to support legacy data)
+            const notifyManagers = sectorManagers;
 
             if (notifyManagers.length > 0) {
                 console.log(`Sending Action Request to ${notifyManagers.length} managers for sector ${targetSector}`);
