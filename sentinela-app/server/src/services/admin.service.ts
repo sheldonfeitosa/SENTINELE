@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import bcrypt from 'bcryptjs';
+import { EmailService } from './email.service';
 
 export class AdminService {
     async getAllTenants() {
@@ -86,12 +87,28 @@ export class AdminService {
 
     async createAdminUser(data: { name: string; email: string; password: string; role: string; tenantId: string }) {
         const hashedPassword = await bcrypt.hash(data.password, 10);
-        return prisma.user.create({
+        const user = await prisma.user.create({
             data: {
                 ...data,
                 password: hashedPassword
             }
         });
+
+        // Send Welcome Email with credentials
+        try {
+            const emailService = new EmailService();
+            await emailService.sendWelcomeEmail(
+                data.email,
+                data.name,
+                data.password, // Send the raw password so user can login
+                process.env.APP_URL || 'http://localhost:5173'
+            );
+        } catch (error) {
+            console.error('Failed to send welcome email to new admin user:', error);
+            // Don't fail the request, just log
+        }
+
+        return user;
     }
 
     async deleteAdminUser(userId: number) {
@@ -133,5 +150,27 @@ export class AdminService {
                 where: { id: tenantId }
             });
         });
+    }
+
+    async getAuditLogs(tenantId: string, role: string) {
+        const query: any = {
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        email: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 200
+        };
+
+        if (role !== 'SUPER_ADMIN') {
+            query.where = { tenantId };
+        }
+
+        // @ts-ignore
+        return prisma.auditLog.findMany(query);
     }
 }

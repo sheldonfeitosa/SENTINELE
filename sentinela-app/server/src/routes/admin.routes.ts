@@ -19,4 +19,7 @@ router.post('/users', controller.createUser);
 router.delete('/users/:id', controller.deleteUser);
 router.delete('/tenants/:id', controller.deleteTenant);
 
+// Audit Logs - specific route
+router.get('/audit/logs', controller.getAuditLogs);
+
 export default router;
