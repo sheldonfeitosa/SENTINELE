@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { NotificationService } from '../services/notification.service';
+import { auditService } from '../services/audit.service';
 
 export class NotificationController {
     private service: NotificationService;
@@ -13,10 +14,21 @@ export class NotificationController {
             const data = req.body;
             const authTenantId = (req as any).user?.tenantId;
             const incident = await this.service.createNotification(data, authTenantId);
+
+            auditService.log({
+                action: 'INCIDENT_CREATED',
+                resource: 'Incident',
+                resourceId: incident.id,
+                userId: (req as any).user?.userId,
+                tenantId: incident.tenantId,
+                ipAddress: req.ip,
+                details: { type: incident.type }
+            });
+
             res.status(201).json(incident);
         } catch (error: any) {
             console.error('CONTROLLER ERROR:', error.message);
-            res.status(500).json({ error: 'Failed to create notification', details: error.message });
+            res.status(500).json({ error: 'Failed to create notification' });
         }
     };
 
@@ -33,7 +45,7 @@ export class NotificationController {
 
     getById = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const notification = await this.service.getNotificationById(id, tenantId);
 
@@ -51,10 +63,21 @@ export class NotificationController {
 
     update = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const data = req.body;
             const incident = await this.service.updateNotification(id, tenantId, data);
+
+            auditService.log({
+                action: 'INCIDENT_UPDATED',
+                resource: 'Incident',
+                resourceId: id,
+                userId: (req as any).user.userId,
+                tenantId,
+                ipAddress: req.ip,
+                details: { status: incident.status }
+            });
+
             res.json(incident);
         } catch (error: any) {
             console.error('UPDATE ERROR:', error.message);
@@ -64,7 +87,7 @@ export class NotificationController {
 
     generateRCA = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const rca = await this.service.generateRCA(id, tenantId);
             res.json(rca);
@@ -76,7 +99,7 @@ export class NotificationController {
 
     generateFiveWhys = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const result = await this.service.generateFiveWhys(id, tenantId);
             res.json(result);
@@ -88,9 +111,19 @@ export class NotificationController {
 
     reanalyze = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const result = await this.service.reanalyzeIncident(id, tenantId);
+
+            auditService.log({
+                action: 'INCIDENT_REANALYZED',
+                resource: 'Incident',
+                resourceId: id,
+                userId: (req as any).user.userId,
+                tenantId,
+                ipAddress: req.ip
+            });
+
             res.json(result);
         } catch (error: any) {
             console.error('REANALYZE ERROR:', error.message);
@@ -102,7 +135,11 @@ export class NotificationController {
 
     forwardToSector = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            console.log('--- FORWARD REQUEST RECEIVED ---');
+            console.log('Params:', req.params);
+            console.log('Body:', req.body);
+
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const { email } = req.body;
             if (!email) {
@@ -119,7 +156,7 @@ export class NotificationController {
 
     notifyHighManagement = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const result = await this.service.notifyHighManagement(id, tenantId);
             res.json(result);
@@ -131,7 +168,7 @@ export class NotificationController {
 
     startActionPlan = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const { deadline } = req.body;
             const result = await this.service.startActionPlan(id, tenantId, deadline ? new Date(deadline) : undefined);
@@ -144,7 +181,7 @@ export class NotificationController {
 
     chat = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const { message, context } = req.body;
             const result = await this.service.chatWithAI(id, tenantId, message, context);
@@ -156,7 +193,7 @@ export class NotificationController {
     };
     contactRiskManager = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const { message, requesterEmail } = req.body;
             const result = await this.service.contactRiskManager(id, tenantId, message, requesterEmail);
@@ -169,7 +206,7 @@ export class NotificationController {
 
     approveDeadline = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const { deadline } = req.body;
             if (!deadline) {
@@ -186,7 +223,7 @@ export class NotificationController {
 
     rejectDeadline = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const result = await this.service.rejectDeadline(id, tenantId);
             res.json(result);

@@ -5,8 +5,8 @@ import { authenticate } from '../middlewares/auth.middleware';
 const router = Router();
 const controller = new ArticleController();
 
-router.get('/', controller.getAll);
-router.get('/:id', controller.getById);
+router.get('/', authenticate, controller.getAll);
+router.get('/:id', authenticate, controller.getById);
 router.post('/', authenticate, controller.create);
 
 // LinkedIn Auth Routes

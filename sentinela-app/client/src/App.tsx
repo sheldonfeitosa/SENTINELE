@@ -11,8 +11,10 @@ import { GanttPage } from './pages/GanttPage';
 import { PricingPage } from './pages/PricingPage';
 import SuccessPage from './pages/SuccessPage';
 import LoginPage from './pages/LoginPage';
+import ResetPassword from './pages/ResetPassword';
 import HomePage from './pages/HomePage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { AuditLogs } from './pages/AuditLogs';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 interface User {
@@ -27,7 +29,6 @@ interface User {
 }
 
 const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.ReactNode, requireSaaS?: boolean }) => {
-    const token = localStorage.getItem('token');
     let user: User = {};
     try {
         const userStr = localStorage.getItem('user');
@@ -43,7 +44,7 @@ const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.Rea
         user.role = 'SUPER_ADMIN';
     }
 
-    if (!token) {
+    if (!localStorage.getItem('user')) {
         return <Navigate to="/login" replace />;
     }
 
@@ -75,11 +76,12 @@ function App() {
             <ErrorBoundary>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/n/:tenantSlug" element={<NotificationForm />} />
 
                     <Route path="/" element={<Layout />}>
                         <Route index element={
-                            localStorage.getItem('token') ?
+                            localStorage.getItem('user') ?
                                 <Navigate to="/gestao-risco" replace /> :
                                 <HomePage />
                         } />
@@ -117,6 +119,11 @@ function App() {
                         <Route path="planos" element={
                             <ProtectedRoute>
                                 <PricingPage />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="auditoria" element={
+                            <ProtectedRoute>
+                                <AuditLogs />
                             </ProtectedRoute>
                         } />
                         <Route path="success" element={

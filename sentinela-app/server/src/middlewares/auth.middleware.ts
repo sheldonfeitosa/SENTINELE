@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'sentinela-secret-key-change-me';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET is not defined in environment variables');
+}
 
 export interface AuthRequest extends Request {
     user?: {
@@ -13,31 +16,30 @@ export interface AuthRequest extends Request {
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-    const authHeader = req.headers.authorization;
+    // Try to get token from cookies first, then from Authorization header
+    const token = (req as any).cookies?.token || req.headers.authorization?.split(' ')[1];
 
-    if (!authHeader) {
-        return res.status(401).json({ error: 'No token provided' });
+    if (!token) {
+        console.warn('Authentication failed: No token provided');
+        return res.status(401).json({ error: 'Nenhum token fornecido.' });
     }
-
-    const [, token] = authHeader.split(' ');
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         (req as any).user = decoded;
         next();
     } catch (err) {
-        return res.status(401).json({ error: 'Invalid token' });
+        console.error('Authentication failed: Invalid or expired token');
+        return res.status(401).json({ error: 'Token inválido ou expirado.' });
     }
 };
 
 export const optionalAuthenticate = (req: Request, res: Response, next: NextFunction) => {
-    const authHeader = req.headers.authorization;
+    const token = (req as any).cookies?.token || req.headers.authorization?.split(' ')[1];
 
-    if (!authHeader) {
+    if (!token) {
         return next();
     }
-
-    const [, token] = authHeader.split(' ');
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;

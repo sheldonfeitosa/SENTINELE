@@ -27,11 +27,11 @@ export class NotificationRepository {
         });
     }
 
-    async findById(id: number, tenantId?: string) {
+    async findById(id: number, tenantId: string) {
         return prisma.incident.findFirst({
             where: {
                 id,
-                ...(tenantId ? { tenantId } : {})
+                tenantId
             }
         });
     }

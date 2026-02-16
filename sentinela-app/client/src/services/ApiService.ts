@@ -6,14 +6,9 @@ const isProduction = import.meta.env.PROD;
 const API_BASE = import.meta.env.VITE_API_URL || (isProduction ? '/api' : 'http://localhost:3001/api');
 const API_URL = `${API_BASE}/notifications`;
 
-// Add Auth Interceptor
-axios.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+// Add Auth Interceptor (Removed as we now use HttpOnly cookies)
+// axios.interceptors.request.use((config) => { ... });
+axios.defaults.withCredentials = true;
 
 class ApiService {
     // Subscription
@@ -231,6 +226,15 @@ class ApiService {
 
     async adminDeleteTenant(id: string): Promise<void> {
         await axios.delete(`${API_BASE}/admin/tenants/${id}`);
+    }
+
+    async getAuditLogs(): Promise<any[]> {
+        const response = await axios.get(`${API_BASE}/admin/audit/logs`);
+        return response.data;
+    }
+
+    async logout(): Promise<void> {
+        await axios.post(`${API_BASE}/auth/logout`);
     }
 
     async resetPassword(email: string): Promise<any> {

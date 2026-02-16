@@ -10,8 +10,8 @@ router.post('/create-checkout-session', async (req: any, res) => {
     try {
         console.log('[Subscription] Request received');
 
-        // Prioritize ID from auth token (secure), fallback to body (testing)
-        const userId = req.user?.userId || req.body.userId;
+        // Strictly use ID from auth token (secure)
+        const userId = req.user?.userId;
 
         console.log(`[Subscription] Target User ID: ${userId}`);
 

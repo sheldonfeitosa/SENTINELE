@@ -9,32 +9,38 @@ datasource db {
 }
 
 model Tenant {
-  id        String     @id @default(uuid())
-  name      String
-  slug      String     @unique
-  createdAt DateTime   @default(now())
+  id           String     @id @default(uuid())
+  name         String
+  slug         String     @unique
+  contactEmail String?
+  qualityEmail String?
+  createdAt    DateTime   @default(now())
   incidents Incident[]
   sectors   Sector[]
   users     User[]
+  auditLogs AuditLog[]
 }
 
 model User {
-  id                  Int       @id @default(autoincrement())
-  email               String    @unique
+  id                  Int        @id @default(autoincrement())
+  email               String     @unique
   password            String
   name                String
-  role                String    @default("USER")
+  role                String     @default("USER")
   sectors             String?
   tenantId            String
   stripeCustomerId    String?
   subscriptionStatus  String?
   subscriptionId      String?
   currentPeriodEnd    DateTime?
-  createdAt           DateTime  @default(now())
+  createdAt           DateTime   @default(now())
   linkedinAccessToken String?
   linkedinUrn         String?
   articles            Article[]
-  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+  tenant              Tenant     @relation(fields: [tenantId], references: [id])
+  resetToken          String?    @unique
+  resetTokenExpiry    DateTime?
+  auditLogs           AuditLog[]
 }
 
 model Incident {
@@ -80,11 +86,25 @@ model Article {
   title          String
   content        String
   imageUrl       String?
-  category       String?  @default("Geral")
+  category       String?
   published      Boolean  @default(false)
-  linkedinPostId String?
-  authorId       Int
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  authorId       Int
   author         User     @relation(fields: [authorId], references: [id])
+  linkedinPostId String?
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  action     String
+  resource   String
+  resourceId Int?
+  userId     Int?
+  tenantId   String
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user   User?  @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 }

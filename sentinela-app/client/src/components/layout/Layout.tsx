@@ -22,7 +22,12 @@ export function Layout() {
         return <Outlet />;
     }
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await apiService.logout();
+        } catch (e) {
+            console.error('Logout failed', e);
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         navigate('/login');
@@ -73,7 +78,7 @@ export function Layout() {
                     </div>
 
                     <nav className="hidden md:flex gap-4 text-sm font-medium items-center">
-                        {localStorage.getItem('token') && (
+                        {localStorage.getItem('user') && (
                             <>
                                 {location.pathname.startsWith('/admin') ? (
                                     <span className="flex items-center gap-2 text-orange-400 font-bold">
@@ -104,13 +109,23 @@ export function Layout() {
                                                     <CreditCard className="w-4 h-4" />
                                                     Planos
                                                 </Link>
+                                                <Link to="/auditoria" className="flex items-center gap-2 hover:text-[#0ea5e9] transition-colors">
+                                                    <ShieldCheck className="w-4 h-4" />
+                                                    Auditoria
+                                                </Link>
                                             </>
                                         )}
                                         {user.role === 'SUPER_ADMIN' && (
-                                            <Link to="/admin" className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors font-bold">
-                                                <ShieldCheck className="w-4 h-4" />
-                                                Painel SaaS
-                                            </Link>
+                                            <>
+                                                <Link to="/admin" className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors font-bold">
+                                                    <ShieldCheck className="w-4 h-4" />
+                                                    Painel SaaS
+                                                </Link>
+                                                <Link to="/auditoria" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors font-bold pl-4 border-l border-white/20">
+                                                    <Activity className="w-4 h-4" />
+                                                    Auditoria Global
+                                                </Link>
+                                            </>
                                         )}
                                     </>
                                 )}

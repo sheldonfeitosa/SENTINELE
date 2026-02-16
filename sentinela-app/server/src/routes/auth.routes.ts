@@ -3,14 +3,33 @@ import { AuthService } from '../services/auth.service';
 
 
 import { EmailService } from '../services/email.service';
+import { auditService } from '../services/audit.service';
 
 const router = Router();
 const authService = new AuthService();
 const emailService = new EmailService();
 
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+};
+
 router.post('/register', async (req, res) => {
     try {
         const result = await authService.register(req.body);
+
+        auditService.log({
+            action: 'REGISTER',
+            resource: 'Auth',
+            userId: result.user.id,
+            tenantId: result.user.tenant.id,
+            ipAddress: req.ip,
+            details: { email: result.user.email }
+        });
+
+        res.cookie('token', result.token, COOKIE_OPTIONS);
         res.status(201).json(result);
     } catch (error: any) {
         res.status(400).json({ error: error.message });
@@ -20,10 +39,33 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const result = await authService.login(req.body);
+
+        auditService.log({
+            action: 'LOGIN_SUCCESS',
+            resource: 'Auth',
+            userId: result.user.id,
+            tenantId: result.user.tenant.id,
+            ipAddress: req.ip
+        });
+
+        res.cookie('token', result.token, COOKIE_OPTIONS);
         res.json(result);
     } catch (error: any) {
+        // Log failed attempt if we can find the tenant
+        auditService.log({
+            action: 'LOGIN_FAILED',
+            resource: 'Auth',
+            tenantId: 'SYSTEM', // We don't have tenant context yet
+            ipAddress: req.ip,
+            details: { email: req.body.email, error: error.message }
+        });
         res.status(401).json({ error: error.message });
     }
+});
+
+router.post('/logout', (req, res) => {
+    res.clearCookie('token');
+    res.json({ message: 'Logout realizado com sucesso.' });
 });
 
 router.post('/trial-request', async (req, res) => {
@@ -55,14 +97,55 @@ router.post('/trial-request', async (req, res) => {
     }
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/forgot-password', async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) {
             return res.status(400).json({ error: 'Email é obrigatório' });
         }
-        await authService.resetPassword(email);
-        res.json({ message: 'Nova senha enviada para o seu e-mail.' });
+        await authService.forgotPassword(email);
+
+        auditService.log({
+            action: 'PASSWORD_RESET_REQUESTED',
+            resource: 'Auth',
+            tenantId: 'SYSTEM',
+            ipAddress: req.ip,
+            details: { email }
+        });
+
+        res.json({ message: 'Se o e-mail estiver cadastrado, um link de recuperação será enviado.' });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.get('/validate-token', async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token) return res.status(400).json({ error: 'Token é obrigatório' });
+        const isValid = await authService.validateResetToken(String(token));
+        res.json({ valid: isValid });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) {
+            return res.status(400).json({ error: 'Token e nova senha são obrigatórios' });
+        }
+        await authService.resetPassword(token, newPassword);
+
+        auditService.log({
+            action: 'PASSWORD_RESET_COMPLETED',
+            resource: 'Auth',
+            tenantId: 'SYSTEM', // Tenant context is inside the token
+            ipAddress: req.ip
+        });
+
+        res.json({ message: 'Senha alterada com sucesso!' });
     } catch (error: any) {
         res.status(400).json({ error: error.message });
     }

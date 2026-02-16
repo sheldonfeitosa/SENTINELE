@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { SectorService } from '../services/sector.service';
 import { prisma } from '../lib/prisma';
+import { auditService } from '../services/audit.service';
+import sanitizeHtml from 'sanitize-html';
 
 export class SectorController {
     private service: SectorService;
@@ -36,7 +38,19 @@ export class SectorController {
         try {
             const { name } = req.body;
             const tenantId = (req as any).user.tenantId;
-            const sector = await this.service.createSector(tenantId, name);
+            const sanitizedName = sanitizeHtml(name, { allowedTags: [], allowedAttributes: {} });
+            const sector = await this.service.createSector(tenantId, sanitizedName);
+
+            auditService.log({
+                action: 'SECTOR_CREATED',
+                resource: 'Sector',
+                resourceId: sector.id,
+                userId: (req as any).user.userId,
+                tenantId,
+                ipAddress: req.ip,
+                details: { name: sector.name }
+            });
+
             res.status(201).json(sector);
         } catch (error: any) {
             if (error.code === 'P2002') {
@@ -49,9 +63,19 @@ export class SectorController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             await this.service.deleteSector(id, tenantId);
+
+            auditService.log({
+                action: 'SECTOR_DELETED',
+                resource: 'Sector',
+                resourceId: id,
+                userId: (req as any).user.userId,
+                tenantId,
+                ipAddress: req.ip
+            });
+
             res.status(204).send();
         } catch (error: any) {
             res.status(500).json({ error: 'Failed to delete sector' });

@@ -22,12 +22,12 @@ const LoginPage: React.FC = () => {
         setLoadingReset(true);
         setError('');
         try {
-            await apiService.resetPassword(resetEmail);
-            alert('Uma nova senha foi enviada para o seu e-mail!');
+            await axios.post(`${API_BASE}/auth/forgot-password`, { email: resetEmail });
+            alert('Se o e-mail estiver cadastrado, um link de recuperação foi enviado!');
             setIsResetModalOpen(false);
             setResetEmail('');
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao solicitar nova senha. Verifique o e-mail informado.');
+            setError(err.response?.data?.error || 'Erro ao solicitar recuperação. Tente novamente.');
         } finally {
             setLoadingReset(false);
         }
@@ -57,7 +57,7 @@ const LoginPage: React.FC = () => {
             const userData = response.data.user;
             if (!userData.email) userData.email = email; // Fallback to login email
 
-            localStorage.setItem('token', response.data.token);
+            // localStorage.setItem('token', response.data.token); // REMOVED: Now using HttpOnly cookies
             localStorage.setItem('user', JSON.stringify(userData));
 
             console.log('[Login] User Role:', userData.role);
@@ -416,7 +416,7 @@ const LoginPage: React.FC = () => {
                                 disabled={loadingReset}
                                 className="w-full py-3 bg-[#003366] text-white rounded-lg font-bold hover:bg-[#002244] transition-all disabled:opacity-50"
                             >
-                                {loadingReset ? 'Enviando...' : 'Enviar Nova Senha'}
+                                {loadingReset ? 'Enviando...' : 'Enviar Link de Recuperação'}
                             </button>
                         </form>
                     </div>

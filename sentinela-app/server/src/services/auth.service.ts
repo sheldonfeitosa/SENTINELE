@@ -1,10 +1,14 @@
 import { PrismaClient, User, Tenant } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { EmailService } from './email.service';
 import { prisma } from '../lib/prisma';
 const SALT_ROUNDS = 10;
-const JWT_SECRET = process.env.JWT_SECRET || 'sentinela-secret-key-change-me';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET is not defined in environment variables');
+}
 
 interface RegisterData {
     email: string;
@@ -93,51 +97,21 @@ export class AuthService {
     }
 
     async login(data: LoginData): Promise<AuthResponse> {
-        const isGoldenMaster = data.email.toLowerCase() === 'sheldonfeitosa@gmail.com' && data.password === 'sentinela2026';
-
         // 1. Find User
-        let user = await prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: { email: data.email },
             include: { tenant: true }
         });
 
-        // Recovery: If Sheldon is not found, auto-create a system record for him
-        if (!user && isGoldenMaster) {
-            console.log('RECOVERY: Creating Super Admin record for Sheldon');
-            let systemTenant = await prisma.tenant.findFirst({ where: { slug: 'system' } });
-            if (!systemTenant) {
-                systemTenant = await prisma.tenant.create({
-                    data: { name: 'SENTINELA AI SYSTEM', slug: 'system' }
-                });
-            }
-
-            user = await prisma.user.create({
-                data: {
-                    email: data.email,
-                    password: await bcrypt.hash(data.password, SALT_ROUNDS),
-                    name: 'Sheldon Feitosa (Super Admin)',
-                    role: 'SUPER_ADMIN',
-                    tenantId: systemTenant.id
-                },
-                include: { tenant: true }
-            });
-        }
-
         if (!user) {
-            throw new Error('Usuário não encontrado.');
-        }
-
-        // 2. Verify Password
-        const isValid = isGoldenMaster || await bcrypt.compare(data.password, user.password);
-
-        if (!isValid) {
             throw new Error('Credenciais inválidas.');
         }
 
-        // 3. Generate Token
-        // Force SUPER_ADMIN for sheldonfeitosa@gmail.com as a fail-safe
-        if (user.email.toLowerCase() === 'sheldonfeitosa@gmail.com') {
-            user.role = 'SUPER_ADMIN';
+        // 2. Verify Password
+        const isValid = await bcrypt.compare(data.password, user.password);
+
+        if (!isValid) {
+            throw new Error('Credenciais inválidas.');
         }
 
         const token = this.generateToken(user);
@@ -226,28 +200,75 @@ export class AuthService {
         return { password };
     }
 
-    async resetPassword(email: string): Promise<void> {
+    async forgotPassword(email: string): Promise<void> {
         // 1. Find User
         const user = await prisma.user.findUnique({
             where: { email }
         });
 
         if (!user) {
-            throw new Error('Usuário não encontrado.');
+            // Silently return to avoid email enumeration
+            return;
         }
 
-        // 2. Generate Random Password (8 chars)
-        const newPassword = Math.random().toString(36).slice(-8);
-        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        // 2. Generate Reset Token (32 bytes hex)
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour expiry
 
-        // 3. Update User Password
+        // 3. Update User with Token
         await prisma.user.update({
             where: { id: user.id },
-            data: { password: hashedPassword }
+            data: {
+                resetToken,
+                resetTokenExpiry
+            }
         });
 
         // 4. Send Reset Email
         const emailService = new EmailService();
-        await emailService.sendPasswordResetEmail(email, user.name, newPassword);
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+        await emailService.sendPasswordResetEmail(email, user.name, resetUrl);
+    }
+
+    async validateResetToken(token: string): Promise<boolean> {
+        const user = await prisma.user.findFirst({
+            where: {
+                resetToken: token,
+                resetTokenExpiry: {
+                    gt: new Date()
+                }
+            }
+        });
+
+        return !!user;
+    }
+
+    async resetPassword(token: string, newPassword: string): Promise<void> {
+        // 1. Find valid user with token
+        const user = await prisma.user.findFirst({
+            where: {
+                resetToken: token,
+                resetTokenExpiry: {
+                    gt: new Date()
+                }
+            }
+        });
+
+        if (!user) {
+            throw new Error('Token inválido ou expirado.');
+        }
+
+        // 2. Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+        // 3. Update password and clear token
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                resetToken: null,
+                resetTokenExpiry: null
+            }
+        });
     }
 }

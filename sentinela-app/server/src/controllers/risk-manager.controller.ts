@@ -41,7 +41,7 @@ export class RiskManagerController {
 
     getById = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const manager = await this.service.getManagerById(id, tenantId);
 
@@ -58,19 +58,19 @@ export class RiskManagerController {
 
     update = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             const manager = await this.service.updateManager(id, tenantId, req.body);
             res.json(manager);
         } catch (error: any) {
-            console.error('UPDATE MANAGER ERROR:', error.message);
-            res.status(500).json({ error: 'Failed to update manager', details: error.message });
+            console.error('SECTOR CONTROLLER ERROR:', error.message);
+            res.status(500).json({ error: 'Failed' });
         }
     };
 
     delete = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params.id as string);
             const tenantId = (req as any).user.tenantId;
             await this.service.deleteManager(id, tenantId);
             res.status(204).send();

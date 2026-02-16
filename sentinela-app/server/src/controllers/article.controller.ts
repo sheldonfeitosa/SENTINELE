@@ -1,15 +1,20 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { linkedinService } from '../services/linkedin.service';
+import sanitizeHtml from 'sanitize-html';
 
 export class ArticleController {
 
-    // List all articles (for the blog feed)
+    // List all articles (scoped to tenant)
     async getAll(req: Request, res: Response) {
         try {
+            const tenantId = (req as any).user.tenantId;
             const articles = await prisma.article.findMany({
+                where: {
+                    author: { tenantId }
+                },
                 orderBy: { createdAt: 'desc' },
-                include: { author: { select: { name: true } } }
+                include: { author: { select: { name: true, tenantId: true } } }
             });
             res.json(articles);
         } catch (error) {
@@ -17,13 +22,17 @@ export class ArticleController {
         }
     }
 
-    // Get article by ID
+    // Get article by ID (scoped to tenant)
     async getById(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            const article = await prisma.article.findUnique({
-                where: { id: Number(id) },
-                include: { author: { select: { name: true } } }
+            const tenantId = (req as any).user.tenantId;
+            const article = await prisma.article.findFirst({
+                where: {
+                    id: Number(id),
+                    author: { tenantId }
+                },
+                include: { author: { select: { name: true, tenantId: true } } }
             });
             if (!article) return res.status(404).json({ error: 'Article not found' });
             res.json(article);
@@ -42,8 +51,8 @@ export class ArticleController {
 
             const article = await prisma.article.create({
                 data: {
-                    title,
-                    content,
+                    title: sanitizeHtml(title),
+                    content: sanitizeHtml(content),
                     imageUrl,
                     category: category || 'Geral', // Default category
                     authorId,

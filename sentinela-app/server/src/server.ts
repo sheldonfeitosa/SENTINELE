@@ -4,6 +4,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
@@ -26,9 +27,48 @@ console.log('--- Initializing Sentinela AI Server ---');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// --- Security Middleware ---
 app.use(helmet());
-app.use(cors());
+
+// CORS configuration: Restrict to allowed origins
+const allowedOrigins = [
+    'https://sentinela-app.vercel.app',
+    'https://sentinela-app-git-main-sheldonfeitosas-projects.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000'
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Origin not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
 app.use(express.json());
+app.use(cookieParser());
+
+// Global Rate Limiting: 100 requests per 15 minutes
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' }
+});
+app.use(globalLimiter);
+
+// Specific Rate Limiting for Login: 5 attempts per 15 minutes
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' }
+});
+app.use('/api/auth/login', loginLimiter);
 
 // Stable Health Check (with DB status)
 app.get('/api/health', async (req, res) => {
