@@ -15,6 +15,10 @@ export class EmailService {
         return this._resend;
     }
 
+    private get appUrl() {
+        return process.env.APP_URL || 'http://localhost:5173';
+    }
+
     private async sendEmailWithFallback(options: { to: string | string[], subject: string, html: string, tag?: string }) {
         const { to, subject, html, tag = 'Email' } = options;
 
@@ -146,7 +150,7 @@ export class EmailService {
                         <p style="margin: 0; color: #555; line-height: 1.5;">${incident.aiAnalysis || '-'}</p>
                     </div>
                     <div style="text-align: center; margin-bottom: 50px;">
-                        <a href="http://localhost:5173/tratativa/${incident.id}" style="background-color: #003366; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: 700; font-size: 14px; text-transform: uppercase; display: inline-block;">RESPONDER PLANO DE AÇÃO</a>
+                        <a href="${this.appUrl}/tratativa/${incident.id}" style="background-color: #003366; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: 700; font-size: 14px; text-transform: uppercase; display: inline-block;">RESPONDER PLANO DE AÇÃO</a>
                     </div>
                     <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 30px;">
                     <div>
@@ -185,7 +189,7 @@ export class EmailService {
                     <p><strong>Descrição:</strong> ${incident.description}</p>
                     <p><strong>Setor:</strong> ${incident.sector}</p>
                 </div>
-                <a href="http://localhost:5173/tratativa/${incident.id}" 
+                <a href="${this.appUrl}/tratativa/${incident.id}" 
                    style="background-color: #1976d2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
                    Acessar Tratativa
                 </a>
@@ -227,7 +231,7 @@ export class EmailService {
                         <p><strong>Setor Envolvido:</strong> ${incident.sector}</p>
                     </div>
                     <div style="text-align: center;">
-                        <a href="http://localhost:5173/tratativa/${incident.id}" style="background-color: #1565c0; color: white; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block;">
+                        <a href="${this.appUrl}/tratativa/${incident.id}" style="background-color: #1565c0; color: white; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block;">
                             ACESSAR PAINEL DE GESTÃO
                         </a>
                     </div>
@@ -257,8 +261,8 @@ export class EmailService {
                     <em style="color: #555;">"${message}"</em>
                 </div>
                 <div style="text-align: center;">
-                    <a href="http://localhost:5173/tratativa/${incident.id}?action=approve_deadline" style="background-color: #2e7d32; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">✅ DEFERIR</a>
-                    <a href="http://localhost:5173/tratativa/${incident.id}?action=reject_deadline" style="background-color: #d32f2f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">❌ INDEFERIR</a>
+                    <a href="${this.appUrl}/tratativa/${incident.id}?action=approve_deadline" style="background-color: #2e7d32; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">✅ DEFERIR</a>
+                    <a href="${this.appUrl}/tratativa/${incident.id}?action=reject_deadline" style="background-color: #d32f2f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">❌ INDEFERIR</a>
                 </div>
             </div>
         `;
