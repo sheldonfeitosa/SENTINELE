@@ -86,6 +86,7 @@ app.get('/api/health', async (req, res) => {
         status: 'ok',
         version: '2.2.0-full',
         db_status: dbStatus,
+        resend_key_configured: !!process.env.RESEND_API_KEY,
         node_env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
     });
