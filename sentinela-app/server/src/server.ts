@@ -1,6 +1,7 @@
-import dotenv from 'dotenv';
+/** Deployment trigger: Email verification finalized **/
+import 'dotenv/config';
 // Load environment variables as early as possible
-dotenv.config();
+
 
 import express from 'express';
 import cors from 'cors';
