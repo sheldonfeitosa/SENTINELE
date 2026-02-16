@@ -347,7 +347,7 @@ export class EmailService {
         `;
 
         await this.sendEmailWithFallback({
-            to: process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br',
+            to: process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com',
             subject: `[LEAD] Novo Teste Grátis: ${data.name} - ${data.hospital}`,
             html,
             tag: 'Trial Request'

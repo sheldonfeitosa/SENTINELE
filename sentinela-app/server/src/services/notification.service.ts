@@ -111,7 +111,7 @@ export class NotificationService {
 
             // Use tenant-specific quality email if available, otherwise fallback to env
             // @ts-ignore
-            const riskManagerEmail = tenant?.qualityEmail || process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br';
+            const riskManagerEmail = tenant?.qualityEmail || process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com';
             await this.emailService.sendIncidentNotification(createdNotification, riskManagerEmail);
 
         } catch (emailError) {
