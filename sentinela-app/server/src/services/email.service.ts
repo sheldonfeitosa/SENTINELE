@@ -60,8 +60,10 @@ export class EmailService {
 
             console.log(`✅ Standard ${tag} sent successfully:`, data);
             return data;
-        } catch (error) {
+        } catch (error: any) {
             console.error(`❌ Critical error in ${tag} sending:`, error);
+            const detailedError = error.response?.data || error.message || error;
+            console.error(`🔍 Detailed Error Info:`, JSON.stringify(detailedError, null, 2));
             throw error;
         }
     }
