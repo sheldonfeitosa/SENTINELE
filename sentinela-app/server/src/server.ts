@@ -1,4 +1,4 @@
-/** Deployment trigger: Email verification finalized **/
+/** Deployment trigger: Environment variables synchronized **/
 import 'dotenv/config';
 // Load environment variables as early as possible
 
