@@ -69,8 +69,8 @@ export class NotificationService {
             eventTypeAi: aiResult.eventType,
             riskLevel: data.tipo_notificacao === 'NÃO CONFORMIDADE' ? 'NA' : (aiResult.riskLevel as any),
             aiAnalysis: aiResult.recommendation,
-            patientName: data.paciente || data.patientName,
-            motherName: data.nome_mae || data.motherName || null,
+            patientName: sanitizeHtml(data.paciente || data.patientName || ''),
+            motherName: sanitizeHtml(data.nome_mae || data.motherName || ''),
             birthDate: parseDate(data.nascimento || data.birthDate),
             sex: data.sexo || data.sex || null,
             admissionDate: parseDate(data.data_internacao || data.admissionDate),
@@ -93,14 +93,25 @@ export class NotificationService {
 
         // 3. Automate Emails (Scoped to Tenant)
         try {
+            const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
             const targetSector = data.setor_notificado || data.setor;
-            const sectorManager = await this.riskManagerRepo.findBySector(targetSector, tenantId);
+            const sectorManagers = await this.riskManagerRepo.findAllBySector(targetSector, tenantId);
 
-            if (sectorManager) {
-                await this.emailService.sendActionRequest(createdNotification, sectorManager.email);
+            // Filter for GESTOR_SETOR or ADMIN (optional, but good practice)
+            const notifyManagers = sectorManagers.filter(m => m.role === 'GESTOR_SETOR' || m.role === 'ADMIN');
+
+            if (notifyManagers.length > 0) {
+                console.log(`Sending Action Request to ${notifyManagers.length} managers for sector ${targetSector}`);
+                for (const manager of notifyManagers) {
+                    await this.emailService.sendActionRequest(createdNotification, manager.email);
+                }
+            } else {
+                console.warn(`No managers found for sector ${targetSector}`);
             }
 
-            const riskManagerEmail = process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br';
+            // Use tenant-specific quality email if available, otherwise fallback to env
+            // @ts-ignore
+            const riskManagerEmail = tenant?.qualityEmail || process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br';
             await this.emailService.sendIncidentNotification(createdNotification, riskManagerEmail);
 
         } catch (emailError) {
@@ -324,12 +335,16 @@ export class NotificationService {
         await this.repository.update(id, tenantId, { actionPlanDeadline: newDeadline });
 
         // Find sector manager for this tenant
-        const managers = await this.riskManagerRepo.findAll(tenantId);
-        // Simple check: if manager's sectors string includes the notified sector
-        const sectorManager = managers.find(m => m.sectors.includes(notification.notifySector) && m.role === 'GESTOR_SETOR');
+        // Find sector managers for this tenant
+        const managers = await this.riskManagerRepo.findAllBySector(notification.notifySector, tenantId);
 
-        if (sectorManager) {
-            await this.emailService.sendDeadlineApprovalEmail(notification, newDeadline.toLocaleDateString('pt-BR'), sectorManager.email);
+        // Filter for GESTOR_SETOR
+        const sectorManagers = managers.filter(m => m.role === 'GESTOR_SETOR');
+
+        if (sectorManagers.length > 0) {
+            for (const manager of sectorManagers) {
+                await this.emailService.sendDeadlineApprovalEmail(notification, newDeadline.toLocaleDateString('pt-BR'), manager.email);
+            }
         } else {
             console.warn(`No sector manager found for sector ${notification.notifySector}`);
         }
@@ -342,11 +357,16 @@ export class NotificationService {
         if (!notification) throw new Error('Notification not found');
 
         // Find sector manager for this tenant
-        const managers = await this.riskManagerRepo.findAll(tenantId);
-        const sectorManager = managers.find(m => m.sectors.includes(notification.notifySector) && m.role === 'GESTOR_SETOR');
+        // Find sector managers for this tenant
+        const managers = await this.riskManagerRepo.findAllBySector(notification.notifySector, tenantId);
 
-        if (sectorManager) {
-            await this.emailService.sendDeadlineRejectionEmail(notification, sectorManager.email);
+        // Filter for GESTOR_SETOR
+        const sectorManagers = managers.filter(m => m.role === 'GESTOR_SETOR');
+
+        if (sectorManagers.length > 0) {
+            for (const manager of sectorManagers) {
+                await this.emailService.sendDeadlineRejectionEmail(notification, manager.email);
+            }
         } else {
             console.warn(`No sector manager found for sector ${notification.notifySector}`);
         }

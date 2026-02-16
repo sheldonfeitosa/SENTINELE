@@ -62,4 +62,27 @@ export class RiskManagerRepository {
             return false;
         });
     }
+
+    async findAllBySector(sector: string, tenantId: string) {
+        const allUsers = await this.findAll(tenantId);
+
+        return allUsers.filter(user => {
+            if (!user.sectors) return false;
+
+            try {
+                // Try parsing as JSON array
+                const sectors = JSON.parse(user.sectors);
+                if (Array.isArray(sectors)) {
+                    return sectors.includes(sector);
+                }
+            } catch (e) {
+                // Fallback to simple string check (comma-separated or single value)
+                if (user.sectors.includes(',')) {
+                    return user.sectors.split(',').map(s => s.trim()).includes(sector);
+                }
+                return user.sectors === sector;
+            }
+            return false;
+        });
+    }
 }
