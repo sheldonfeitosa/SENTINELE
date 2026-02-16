@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 
 export class EmailService {
     private _resend: Resend | null = null;
-    private fromEmail = 'Sentinela AI <qualidade@inmceb.med.br>'; // Standardized email
+    private fromEmail = 'Sentinela AI <notificacoes@sheldonfeitosa.com.br>'; // Using user's professional domain
     private fallbackFrom = 'Sentinela AI <onboarding@resend.dev>';
 
     private get resend() {
