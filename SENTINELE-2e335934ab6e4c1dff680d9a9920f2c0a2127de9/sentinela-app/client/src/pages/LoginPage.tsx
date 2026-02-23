@@ -8,7 +8,7 @@ import {
 
 const LoginPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'login' | 'prospect'>('login');
-    const [email, setEmail] = useState('sheldonfeitosa@gmail.com');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -215,8 +215,8 @@ const LoginPage: React.FC = () => {
                     {activeTab === 'login' ? (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                             <div className="text-left mb-8">
-                                <h2 className="text-2xl font-bold text-slate-900">Bem-vindo de volta</h2>
-                                <p className="text-slate-500 mt-2">Acesse sua conta corporativa.</p>
+                                <h2 className="text-2xl font-bold text-slate-900">Acesso de Gestor</h2>
+                                <p className="text-slate-500 mt-2">Área restrita para gestores de risco e diretoria. Se você é funcionário e quer <strong>notificar um incidente</strong>, use o formulário disponível nos tablets do seu setor.</p>
                             </div>
 
                             {error && (

@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { ShieldCheck, Brain, Scale, Activity, Mic, MicOff, CheckCircle } from 'lucide-react';
 import { apiService } from '../services/ApiService';
-import { useNavigate } from 'react-router-dom';
+
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 type FormData = {
@@ -26,11 +26,12 @@ export function NotificationForm() {
     const { tenantSlug } = useParams<{ tenantSlug: string }>();
     const [selectedType, setSelectedType] = React.useState<'EVENTO ADVERSO' | 'NÃO CONFORMIDADE'>('EVENTO ADVERSO');
     const { register, handleSubmit, setValue, getValues, formState: { errors } } = useForm<FormData>();
-    const navigate = useNavigate();
+
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [sectors, setSectors] = React.useState<{ id: number; name: string }[]>([]);
     const [showSuccessModal, setShowSuccessModal] = React.useState(false);
     const [createdId, setCreatedId] = React.useState<number | null>(null);
+    const [hospitalName, setHospitalName] = React.useState<string | null>(null);
 
     // Use custom hook
     const { isListening, stopListening, startListening, warning } = useSpeechRecognition();
@@ -58,15 +59,19 @@ export function NotificationForm() {
     };
 
     React.useEffect(() => {
-        const loadSectors = async () => {
+        const loadData = async () => {
             try {
-                const data = await apiService.getSectors(tenantSlug);
-                setSectors(data);
+                const [sectorsData, tenantInfo] = await Promise.all([
+                    apiService.getSectors(tenantSlug),
+                    tenantSlug ? apiService.getTenantInfo(tenantSlug) : Promise.resolve(null)
+                ]);
+                setSectors(sectorsData);
+                if (tenantInfo?.name) setHospitalName(tenantInfo.name);
             } catch (error) {
-                console.error('Failed to load sectors', error);
+                console.error('Failed to load data', error);
             }
         };
-        loadSectors();
+        loadData();
     }, []);
 
     React.useEffect(() => {
@@ -135,6 +140,9 @@ export function NotificationForm() {
                         <Activity className="w-6 h-6 text-[#0ea5e9]" />
                         SENTINELA AI
                     </h1>
+                    {hospitalName && (
+                        <p className="text-[#0ea5e9] font-semibold text-base mt-1">{hospitalName}</p>
+                    )}
                     <p className="text-blue-100 text-sm mt-1">Plataforma de Notificação de Eventos e Não Conformidades</p>
                 </div>
 
@@ -334,7 +342,7 @@ export function NotificationForm() {
                     </div>
                 </div>
             </aside>
-            {/* Success Modal */}
+            {/* Success Modal — Notificador anônimo, sem redirecionamento para área de gestão */}
             {showSuccessModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center transform transition-all animate-in zoom-in-95 duration-300">
@@ -342,26 +350,24 @@ export function NotificationForm() {
                             <CheckCircle className="h-12 w-12 text-green-600 animate-in zoom-in spin-in-180 duration-500 delay-150" />
                         </div>
                         <h3 className="text-2xl font-bold text-[#003366] mb-2">
-                            NOTIFICAÇÃO ENVIADA COM SUCESSO!
+                            NOTIFICAÇÃO ENVIADA!
                         </h3>
-                        <p className="text-gray-600 mb-8">
-                            Agradecemos sua contribuição para a segurança do paciente. O setor responsável foi notificado.
+                        <p className="text-gray-600 mb-2">
+                            Sua notificação foi registrada com sucesso.
+                        </p>
+                        <p className="text-sm text-gray-500 mb-8">
+                            A equipe de gestão de risco foi alertada e tomará as providências necessárias.
+                            Obrigado por contribuir com a segurança do paciente. 🛡️
                         </p>
                         <div className="space-y-3">
                             <button
-                                onClick={() => navigate('/gestao-risco')}
-                                className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-3 bg-[#003366] text-base font-bold text-white hover:bg-[#002244] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#003366] transition-colors"
-                            >
-                                Voltar ao Dashboard
-                            </button>
-                            <button
                                 onClick={() => {
                                     setShowSuccessModal(false);
-                                    window.location.reload(); // Reset form simply by reloading or use form reset
+                                    window.location.reload();
                                 }}
-                                className="w-full inline-flex justify-center rounded-xl border border-gray-300 shadow-sm px-4 py-3 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#003366] transition-colors"
+                                className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-3 bg-[#003366] text-base font-bold text-white hover:bg-[#002244] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#003366] transition-colors"
                             >
-                                Nova Notificação
+                                Fazer Nova Notificação
                             </button>
                         </div>
                     </div>

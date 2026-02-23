@@ -15,10 +15,11 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import HomePage from './pages/HomePage';
 import { AdminDashboard } from './pages/AdminDashboard';
 
-
-
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+// -------------------------------------------------------
+// ProtectedRoute: exige login para acessar gestão de risco
+// -------------------------------------------------------
 const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.ReactNode, requireSaaS?: boolean }) => {
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -27,12 +28,12 @@ const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.Rea
     return <Navigate to="/login" replace />;
   }
 
-  // Isolation: Super Admin belongs ONLY in /admin
+  // Isolamento: Super Admin só acessa /admin
   if (user.role === 'SUPER_ADMIN' && !requireSaaS) {
     return <Navigate to="/admin" replace />;
   }
 
-  // Reverse Isolation: Regular users shouldn't access /admin
+  // Isolamento reverso: usuários normais não acessam /admin
   if (requireSaaS && user.role !== 'SUPER_ADMIN') {
     return <Navigate to="/gestao-risco" replace />;
   }
@@ -45,43 +46,69 @@ function App() {
     <BrowserRouter>
       <ErrorBoundary>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          {/*
+           * ═══════════════════════════════════════════════════════
+           * ROTAS PÚBLICAS — sem login, sem Layout de gestão
+           * ═══════════════════════════════════════════════════════
+           * /n/:tenantSlug  → Formulário de notificação anônima
+           *   Colocado em tablets/computadores nos setores do hospital.
+           *   Qualquer funcionário pode notificar SEM criar conta.
+           */}
           <Route path="/n/:tenantSlug" element={<NotificationForm />} />
 
+          {/*
+           * ═══════════════════════════════════════════════════════
+           * ROTAS DE AUTENTICAÇÃO
+           * ═══════════════════════════════════════════════════════
+           */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+          {/*
+           * ═══════════════════════════════════════════════════════
+           * ROTAS PROTEGIDAS — exige login de gestor/admin
+           * ═══════════════════════════════════════════════════════
+           */}
           <Route path="/" element={<Layout />}>
             <Route index element={
               localStorage.getItem('token') ?
                 <Navigate to="/gestao-risco" replace /> :
                 <HomePage />
             } />
-            {/* Protected Routes */}
+
+            {/* Dashboard principal de gestão de risco */}
             <Route path="gestao-risco" element={
               <ProtectedRoute>
                 <RiskDashboard />
               </ProtectedRoute>
             } />
-            <Route path="notificacao" element={
-              <ProtectedRoute>
-                <NotificationForm />
-              </ProtectedRoute>
-            } />
+
             <Route path="dashboard" element={<Navigate to="/gestao-risco" replace />} />
+
             <Route path="gestores" element={
               <ProtectedRoute>
                 <RiskManagerPage />
               </ProtectedRoute>
             } />
+
             <Route path="estatisticas" element={
               <ProtectedRoute>
                 <StatisticsPage />
               </ProtectedRoute>
             } />
+
             <Route path="tratativa/:id" element={
               <ProtectedRoute>
                 <TratativaPage />
               </ProtectedRoute>
             } />
+
+            <Route path="tratativa" element={
+              <ProtectedRoute>
+                <TratativaPage />
+              </ProtectedRoute>
+            } />
+
             <Route path="gantt" element={
               <ProtectedRoute>
                 <GanttPage />
@@ -93,25 +120,19 @@ function App() {
                 <PricingPage />
               </ProtectedRoute>
             } />
+
             <Route path="success" element={
               <ProtectedRoute>
                 <SuccessPage />
               </ProtectedRoute>
             } />
 
+            {/* Admin SaaS — apenas SUPER_ADMIN */}
             <Route path="admin" element={
               <ProtectedRoute requireSaaS={true}>
                 <AdminDashboard />
               </ProtectedRoute>
             } />
-
-            {/* Dev Fallback (Protected?) */}
-            <Route path="tratativa" element={
-              <ProtectedRoute>
-                <TratativaPage />
-              </ProtectedRoute>
-            } />
-
           </Route>
         </Routes>
       </ErrorBoundary>

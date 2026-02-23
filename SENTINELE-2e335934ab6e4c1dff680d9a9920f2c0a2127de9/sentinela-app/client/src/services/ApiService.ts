@@ -177,6 +177,17 @@ class ApiService {
         return response.data;
     }
 
+    async getTenantInfo(tenantSlug: string): Promise<{ name: string; slug: string } | null> {
+        try {
+            const response = await axios.get(`${API_BASE}/sectors/tenant-info`, {
+                params: { tenantSlug }
+            });
+            return response.data;
+        } catch {
+            return null;
+        }
+    }
+
     async createSector(name: string): Promise<Sector> {
         const response = await axios.post(`${API_BASE}/sectors`, { name });
         return response.data;
