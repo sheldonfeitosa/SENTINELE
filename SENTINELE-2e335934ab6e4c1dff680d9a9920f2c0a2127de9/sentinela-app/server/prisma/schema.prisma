@@ -1,0 +1,90 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  createdAt DateTime   @default(now())
+  incidents Incident[]
+  sectors   Sector[]
+  users     User[]
+}
+
+model User {
+  id                  Int       @id @default(autoincrement())
+  email               String    @unique
+  password            String
+  name                String
+  role                String    @default("USER")
+  sectors             String?
+  tenantId            String
+  stripeCustomerId    String?
+  subscriptionStatus  String?
+  subscriptionId      String?
+  currentPeriodEnd    DateTime?
+  createdAt           DateTime  @default(now())
+  linkedinAccessToken String?
+  linkedinUrn         String?
+  articles            Article[]
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+}
+
+model Incident {
+  id                  Int       @id @default(autoincrement())
+  createdAt           DateTime  @default(now())
+  tenantId            String
+  patientName         String
+  motherName          String?
+  birthDate           DateTime?
+  sex                 String?
+  admissionDate       DateTime?
+  eventDate           DateTime
+  period              String?
+  sector              String
+  notifySector        String
+  type                String
+  description         String
+  reporterEmail       String?
+  status              String    @default("Pendente")
+  eventTypeAi         String?
+  riskLevel           String?
+  aiAnalysis          String?
+  investigationList   String?
+  rootCause           String?
+  actionPlan          String?
+  actionPlanStatus    String    @default("NOT_STARTED")
+  actionPlanStartDate DateTime?
+  actionPlanDeadline  DateTime?
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+}
+
+model Sector {
+  id       Int    @id @default(autoincrement())
+  name     String
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([name, tenantId])
+}
+
+model Article {
+  id             Int      @id @default(autoincrement())
+  title          String
+  content        String
+  imageUrl       String?
+  category       String?  @default("Geral")
+  published      Boolean  @default(false)
+  linkedinPostId String?
+  authorId       Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  author         User     @relation(fields: [authorId], references: [id])
+}
