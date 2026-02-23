@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import path from 'path';
+
 // Load environment variables as early as possible
 dotenv.config();
 
@@ -6,13 +8,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-
 import { notificationRoutes } from './routes/notification.routes';
 import sectorRoutes from './routes/sector.routes';
 import { authRoutes } from './routes/auth.routes';
 import { authenticate } from './middlewares/auth.middleware';
 import { prisma } from './lib/prisma';
-
 import riskManagerRoutes from './routes/risk-manager.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import articleRoutes from './routes/article.routes';
@@ -27,20 +27,20 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(helmet());
+
 app.use(cors({
     origin: [
         'http://localhost:5173',
         'http://localhost:3000',
-        'https://sentinelaii.com.br',
-        'https://www.sentinelaii.com.br',
-        'https://api.sentinelaii.com.br',
-        'https://sentinela-ai.vercel.app'
+        'https://sentinelaai.com.br',
+        'https://www.sentinelaai.com.br',
+        'https://api.sentinelaai.com.br',
+        'https://sentinela-app.vercel.app'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
 
 // Stable Health Check (with DB status)
 app.get('/api/health', async (req, res) => {
@@ -51,7 +51,6 @@ app.get('/api/health', async (req, res) => {
     } catch (e: any) {
         dbStatus = `error: ${e.message}`;
     }
-
     res.status(200).json({
         status: 'ok',
         version: '2.2.0-full',
@@ -64,15 +63,28 @@ app.get('/api/health', async (req, res) => {
 // Webhook must be before express.json()
 app.use('/api', webhookRoutes);
 
-// Re-enabled stable routes
-app.use('/api/auth', authRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/sectors', sectorRoutes);
+app.use(express.json());
 
-// Re-enabling protected routes
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // limite de 100 requisições por IP
+    message: 'Muitas requisições deste IP, tente novamente após 15 minutos.'
+});
+
+const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hora
+    max: 10, // limite de 10 tentativas de login
+    message: 'Muitas tentativas de login, tente novamente após 1 hora.'
+});
+
+// Stable routes
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/notifications', apiLimiter, notificationRoutes);
+app.use('/api/sectors', apiLimiter, sectorRoutes);
+
+// Protected routes
 app.use('/api/managers', authenticate, riskManagerRoutes);
 app.use('/api/dashboard', authenticate, dashboardRoutes);
-
 app.use('/api/articles', articleRoutes);
 app.use('/api/linkedin', linkedinRoutes);
 

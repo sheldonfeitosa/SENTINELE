@@ -1,0 +1,23 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.notificationRoutes = void 0;
+const express_1 = require("express");
+const notification_controller_1 = require("../controllers/notification.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+exports.notificationRoutes = router;
+const controller = new notification_controller_1.NotificationController();
+router.post('/', auth_middleware_1.optionalAuthenticate, controller.create); // Public for anonymous reporting, but identify user if logged in
+router.get('/', auth_middleware_1.authenticate, controller.getAll);
+router.get('/:id', auth_middleware_1.authenticate, controller.getById);
+router.put('/:id', auth_middleware_1.authenticate, controller.update);
+router.post('/:id/analyze-root-cause', auth_middleware_1.authenticate, controller.generateRCA);
+router.post('/:id/five-whys', auth_middleware_1.authenticate, controller.generateFiveWhys);
+router.post('/:id/reanalyze', auth_middleware_1.authenticate, controller.reanalyze);
+router.post('/:id/forward', auth_middleware_1.authenticate, controller.forwardToSector);
+router.post('/:id/high-management', auth_middleware_1.authenticate, controller.notifyHighManagement);
+router.post('/:id/start-action-plan', auth_middleware_1.authenticate, controller.startActionPlan);
+router.post('/:id/chat', auth_middleware_1.authenticate, controller.chat);
+router.post('/:id/contact-risk-manager', auth_middleware_1.authenticate, controller.contactRiskManager);
+router.post('/:id/approve-deadline', auth_middleware_1.authenticate, controller.approveDeadline);
+router.post('/:id/reject-deadline', auth_middleware_1.authenticate, controller.rejectDeadline);

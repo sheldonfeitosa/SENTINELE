@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 
 export class EmailService {
     private _resend: Resend | null = null;
-    private fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev'; // Configurable sender
+    private fromEmail = (process.env.EMAIL_FROM || 'onboarding@resend.dev').replace(/[\r\n]/g, '').trim();
 
     private get resend() {
         if (!this._resend) {
@@ -12,6 +12,55 @@ export class EmailService {
             this._resend = new Resend(process.env.RESEND_API_KEY);
         }
         return this._resend;
+    }
+
+    private async sendEmailWithFallback(params: { to: string | string[], subject: string, html: string }) {
+        let lastError: any = null;
+
+        try {
+            const { data, error } = await this.resend.emails.send({
+                from: this.fromEmail,
+                to: params.to,
+                subject: params.subject,
+                html: params.html
+            });
+
+            if (!error) {
+                console.log(`✅ Email sent using primary sender (${this.fromEmail})`);
+                return { data, error };
+            }
+
+            lastError = error;
+            console.warn(`⚠️ Primary sender failed (${this.fromEmail}):`, error.message);
+        } catch (err: any) {
+            lastError = err;
+            console.warn(`⚠️ Primary sender exception (${this.fromEmail}):`, err.message);
+        }
+
+        // Fallback para onboarding@resend.dev se o primeiro falhar e não for ele mesmo
+        if (this.fromEmail !== 'onboarding@resend.dev') {
+            try {
+                console.log('🔄 Attempting fallback to onboarding@resend.dev...');
+                const { data, error } = await this.resend.emails.send({
+                    from: 'onboarding@resend.dev',
+                    to: params.to,
+                    subject: params.subject,
+                    html: params.html
+                });
+
+                if (!error) {
+                    console.log('✅ Email sent using fallback sender (onboarding@resend.dev)');
+                    return { data, error };
+                }
+                console.error('❌ Fallback sender also failed:', error.message);
+                throw new Error(error.message);
+            } catch (fallbackErr: any) {
+                console.error('❌ Fallback exception:', fallbackErr.message);
+                throw fallbackErr;
+            }
+        }
+
+        throw new Error(lastError?.message || 'Failed to send email');
     }
 
     async sendWelcomeEmail(email: string, name: string, password: string, loginUrl: string) {
@@ -38,12 +87,15 @@ export class EmailService {
                 
                 <br>
                 <a href="${loginUrl}" style="background-color: #003366; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Acessar Agora</a>
+                <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 16px; font-weight: 700;">Equipe Sentinela AI</h2>
+                    <p style="color: #666; margin: 0; font-size: 12px;">Sucesso do Cliente</p>
+                </div>
             </div>
         `;
 
         try {
-            await this.resend.emails.send({
-                from: this.fromEmail,
+            await this.sendEmailWithFallback({
                 to: email,
                 subject: 'Bem-vindo ao Sentinela AI - Suas Credenciais de Acesso',
                 html
@@ -115,38 +167,15 @@ export class EmailService {
 
                     <!-- Button -->
                     <div style="text-align: center; margin-bottom: 50px;">
-                        <a href="http://localhost:5173/tratativa/${incident.id}" style="background-color: #003366; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: 700; font-size: 14px; text-transform: uppercase; display: inline-block;">RESPONDER PLANO DE AÇÃO</a>
+                        <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}" style="background-color: #003366; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: 700; font-size: 14px; text-transform: uppercase; display: inline-block;">RESPONDER PLANO DE AÇÃO</a>
                     </div>
 
                     <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 30px;">
 
                     <!-- Signature -->
                     <div>
-                        <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 18px; font-weight: 700;">Sheldon L. A. Feitosa</h2>
-                        <p style="color: #666; margin: 0 0 20px 0; font-size: 14px;">Gerente da Qualidade | INMCEB</p>
-                        
-                        <div style="display: flex; gap: 30px;">
-                            <div style="flex: 1;">
-                                <div style="color: #2e7d32; font-weight: bold; margin-bottom: 8px; font-size: 12px; display: flex; align-items: center;">
-                                    ✅ ESPECIALISTA
-                                </div>
-                                <ul style="margin: 0; padding-left: 15px; font-size: 11px; color: #555; line-height: 1.6;">
-                                    <li>Gestão da Qualidade (ONA)</li>
-                                    <li>Saúde Mental (Estácio)</li>
-                                    <li>Lean Six Sigma Yellow Belt</li>
-                                </ul>
-                            </div>
-                            
-                            <div style="flex: 1;">
-                                <div style="color: #1565c0; font-weight: bold; margin-bottom: 8px; font-size: 12px;">
-                                    🚀 EM FORMAÇÃO (2026)
-                                </div>
-                                <ul style="margin: 0; padding-left: 15px; font-size: 11px; color: #555; line-height: 1.6;">
-                                    <li>Arquitetura de Software & Dados (PUCPR)</li>
-                                    <li>MBA Gestão Saúde (Monte Pascoal)</li>
-                                </ul>
-                            </div>
-                        </div>
+                        <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 18px; font-weight: 700;">Equipe Sentinela AI</h2>
+                        <p style="color: #666; margin: 0 0 20px 0; font-size: 14px;">Gestão Inteligente de Riscos e Segurança</p>
                     </div>
                 </div>
             </div>
@@ -154,8 +183,7 @@ export class EmailService {
 
         try {
             console.log(`📧 Attempting to send Incident Notification to: ${riskManagerEmail}`);
-            const result = await this.resend.emails.send({
-                from: this.fromEmail,
+            const result = await this.sendEmailWithFallback({
                 to: riskManagerEmail,
                 subject: `[SENTINELA AI] NOTIFICAÇÃO: Nº ${incident.id}`,
                 html: html
@@ -180,24 +208,59 @@ export class EmailService {
 
     async sendActionRequest(incident: any, sectorManagerEmail: string) {
         const html = `
-            <div style="font-family: Arial, sans-serif; padding: 20px;">
-                <h2 style="color: #d32f2f;">Ação Necessária: Notificação #${incident.id}</h2>
-                <p>Uma nova notificação requer sua atenção para elaboração do Plano de Ação.</p>
-                <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0;">
-                    <p><strong>Descrição:</strong> ${incident.description}</p>
-                    <p><strong>Setor:</strong> ${incident.sector}</p>
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; background-color: #ffffff;">
+                <!-- Header -->
+                <div style="background-color: #d32f2f; padding: 25px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">AÇÃO IMEDIATA NECESSÁRIA</h1>
+                    <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 13px; opacity: 0.9;">Notificação de Incidência Nº ${incident.id}</p>
                 </div>
-                <a href="http://localhost:5173/tratativa/${incident.id}" 
-                   style="background-color: #1976d2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                   Acessar Tratativa
-                </a>
+
+                <div style="padding: 30px;">
+                    <p style="font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+                        Prezado Gestor,
+                    </p>
+                    
+                    <p style="font-size: 15px; line-height: 1.6; margin-bottom: 20px; text-align: justify;">
+                        Identificamos uma pendência crítica sob sua responsabilidade: a elaboração do <strong>Plano de Ação</strong> para a ocorrência registrada no setor <strong>${incident.sector}</strong>. 
+                    </p>
+
+                    <div style="background-color: #fff8f1; border-left: 4px solid #ff9800; padding: 20px; margin-bottom: 25px;">
+                        <p style="margin: 0; font-size: 14px; color: #e65100; font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">⚠️ DETALHES DA PENDÊNCIA:</p>
+                        <p style="margin: 5px 0; font-size: 14px;"><strong>ID:</strong> #${incident.id}</p>
+                        <p style="margin: 5px 0; font-size: 14px;"><strong>Evento:</strong> ${incident.description}</p>
+                    </div>
+
+                    <p style="font-size: 15px; line-height: 1.6; margin-bottom: 20px; text-align: justify;">
+                        <strong>Por que sua resposta é urgente?</strong><br>
+                        A gestão de incidentes é a nossa maior ferramenta de blindagem. Cada hora de atraso na tratativa é uma janela aberta para que o mesmo erro se repita, colocando em risco a segurança do paciente e a integridade da nossa operação.
+                    </p>
+
+                    <p style="font-size: 15px; line-height: 1.6; margin-bottom: 30px; text-align: justify; color: #555;">
+                        Lembramos que o preenchimento eficaz do plano de ação é um requisito mandatório de <strong>Compliance e Governança Clínica</strong>. Sua liderança é fundamental para transformarmos essa falha em uma oportunidade de melhoria contínua.
+                    </p>
+
+                    <!-- Button -->
+                    <div style="text-align: center; margin-bottom: 35px;">
+                        <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}" 
+                           style="background-color: #003366; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; text-transform: uppercase; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                           ELABORAR PLANO DE AÇÃO AGORA
+                        </a>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 25px;">
+
+                    <!-- Signature -->
+                    <div style="text-align: left;">
+                        <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 16px; font-weight: 700;">Equipe Sentinela AI</h2>
+                        <p style="color: #666; margin: 0; font-size: 12px;">Gestão de Riscos e Qualidade Hospitalar</p>
+                    </div>
+                </div>
             </div>
         `;
 
         try {
             console.log(`📧 Sending Action Request FROM: ${this.fromEmail} TO: ${sectorManagerEmail}`);
-            await this.resend.emails.send({
-                from: this.fromEmail,
+            await this.sendEmailWithFallback({
                 to: sectorManagerEmail,
                 subject: `[AÇÃO NECESSÁRIA] Notificação #${incident.id}`,
                 html: html
@@ -223,22 +286,16 @@ export class EmailService {
                 <div style="padding: 40px;">
                     <!-- Salutation -->
                     <p style="font-size: 16px; font-weight: bold; margin-bottom: 25px;">
-                        Excelentíssimo Diretor Presidente Voluntário, Sr. Zilmar Pereira,
+                        Prezado(a) Diretor(a),
                     </p>
 
                     <!-- Body Paragraph 1 -->
                     <p style="font-size: 15px; line-height: 1.6; margin-bottom: 20px; text-align: justify;">
-                        No exercício da <strong>Governança Clínica e Gestão de Riscos</strong>, submeto a V.S.ª este reporte
-                        de nível crítico. Identificamos o <strong>esgotamento dos prazos regulamentares</strong> para a
-                        tratativa da Notificação <strong>Nº ${incident.id}</strong> (Setor: <strong>${incident.sector}</strong>), sem evidência de resolução eficaz
-                        pela gestão responsável.
+                        No exercício da <strong>Governança Clínica e Gestão de Riscos</strong>, submetemos a V.S.ª este reporte de <strong>alerta de conformidade</strong>. Identificamos que a Notificação <strong>Nº ${incident.id}</strong> (Setor: <strong>${incident.sector}</strong>) ultrapassou os prazos regulamentares de tratativa sem resolução pela gestão setorial.
                     </p>
 
-                    <!-- Body Paragraph 2 -->
-                    <p style="font-size: 15px; line-height: 1.6; margin-bottom: 30px; text-align: justify;">
-                        Esta inércia configura um <strong>passivo oculto</strong> para a instituição. A ausência de plano de
-                        ação documentado expõe o hospital a riscos jurídicos, assistenciais e de imagem. A
-                        melhoria contínua não pode ser interrompida por falhas de fluxo.
+                    <p style="font-size: 15px; line-height: 1.6; margin-bottom: 20px; text-align: justify;">
+                        A ausência de um plano de ação documentado expõe a instituição a riscos jurídicos e compromete as diretrizes da **ONA**. Como Alta Gestão, sua autonomia é fundamental para destravar esse fluxo.
                     </p>
 
                     <!-- Dossier Box -->
@@ -261,62 +318,50 @@ export class EmailService {
                     </div>
 
                     <!-- Call to Action -->
-                    <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border: 1px dashed #2196f3; text-align: center;">
-                        <p style="color: #0d47a1; font-weight: bold; margin-bottom: 15px;">
-                            Solicitamos sua chancela para destravar este fluxo, garantindo a blindagem institucional e a segurança do paciente, conforme diretrizes da ONA.
+                    <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; border: 1px solid #dee2e6; text-align: center;">
+                        <p style="color: #333; font-weight: bold; margin-bottom: 20px; font-size: 15px; line-height: 1.5;">
+                            Solicitamos sua intervenção técnica. V.S.ª pode optar por dilatar o prazo ou revisar a estratégia de tratativa.
                         </p>
-                        <a href="http://localhost:5173/tratativa/${incident.id}" style="background-color: #1565c0; color: white; padding: 12px 25px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                            ACESSAR PAINEL DE GESTÃO
-                        </a>
-                    </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}?action=approve_deadline" 
+                               style="background-color: #2e7d32; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3); font-size: 14px; text-transform: uppercase; margin-right: 10px; margin-bottom: 10px;">
+                                🗓️ DILATAR PRAZO (AUTONOMIA)
+                            </a>
 
-                    <hr style="border: 0; border-top: 1px solid #e0e0e0; margin-bottom: 30px;">
-
-                    <!-- Signature -->
-                    <div>
-                        <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 20px;">Sheldon L. A. Feitosa</h2>
-                        <p style="color: #666; margin: 0 0 20px 0; font-size: 14px;">Gerente da Qualidade | INMCEB - Instituto do Comportamento Eurípedes Barsanulfo</p>
-
-                        <div style="display: flex; gap: 40px;">
-                            <div style="flex: 1;">
-                                <div style="color: #2e7d32; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center;">
-                                    ✅ Especialista (Concluído)
-                                </div>
-                                <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #666; line-height: 1.5;">
-                                    <li>Pós-graduação em Saúde Mental e Psicossocial (Estácio)</li>
-                                    <li>Lean Six Sigma Yellow Belt (FM2S)</li>
-                                </ul>
-                            </div>
-
-                            <div style="flex: 1;">
-                                <div style="color: #1565c0; font-weight: bold; margin-bottom: 10px;">
-                                    🚀 Em Formação (2026)
-                                </div>
-                                <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #666; line-height: 1.5;">
-                                    <li>Arquitetura de Software, C.Dados e Cybersecurity (PUCPR)</li>
-                                    <li>MBA em Gestão de Saúde e Acreditação (Monte Pascoal)</li>
-                                </ul>
-                            </div>
+                            <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}" 
+                               style="background-color: #1565c0; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3); font-size: 14px; text-transform: uppercase;">
+                                🔍 REVISAR TRATATIVA
+                            </a>
                         </div>
                     </div>
+
+                    <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+
+                <!-- Signature -->
+                <div style="margin-top: 20px;">
+                    <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 18px; font-weight: 700;">Sentinela AI</h2>
+                    <p style="color: #666; margin: 0; font-size: 14px;">Protocolo de Segurança e Acreditação ONA</p>
                 </div>
             </div>
+        </div>
         `;
 
         if (highManagementEmails.length > 0) {
-            console.log(`📧 Sending High Management Report to: ${highManagementEmails.join(', ')}`);
-            try {
-                const result = await this.resend.emails.send({
-                    from: this.fromEmail,
-                    to: highManagementEmails,
-                    subject: `[ALTA GESTÃO] NOTA DE ESCALONAMENTO - Notificação Nº ${incident.id}`,
-                    html: html
-                });
-                console.log('✅ High Management Email sent successfully:', result);
-            } catch (error) {
-                console.error('❌ Failed to send High Management Email:', error);
-                throw error;
+            console.log(`📧 Sending High Management Reports individually to: ${highManagementEmails.join(', ')}`);
+            for (const recipient of highManagementEmails) {
+                try {
+                    await this.sendEmailWithFallback({
+                        to: recipient,
+                        subject: `[ALTA GESTÃO] NOTA DE ESCALONAMENTO - Notificação Nº ${incident.id}`,
+                        html: html
+                    });
+                    console.log(`✅ High Management Email sent to ${recipient}`);
+                } catch (error: any) {
+                    console.error(`❌ Failed to send High Management Email to ${recipient}:`, error.message);
+                }
             }
+            return;
         } else {
             console.warn('⚠️ No High Management emails found to send report.');
         }
@@ -343,26 +388,26 @@ export class EmailService {
                 <div style="margin-top: 30px; text-align: center;">
                     <p style="margin-bottom: 15px;">Selecione uma ação:</p>
                     
-                    <a href="http://localhost:5173/tratativa/${incident.id}?action=approve_deadline" 
+                    <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}?action=approve_deadline" 
                        style="background-color: #2e7d32; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;">
                        ✅ DEFERIR (Novo Prazo)
                     </a>
                     
-                    <a href="http://localhost:5173/tratativa/${incident.id}?action=reject_deadline" 
+                    <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}?action=reject_deadline" 
                        style="background-color: #d32f2f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                        ❌ INDEFERIR
                     </a>
                 </div>
 
-                <p style="margin-top: 30px; font-size: 12px; color: #999; text-align: center;">
-                    Ao clicar em "Deferir", você será redirecionado para definir a nova data.
-                </p>
+                <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; text-align: center;">
+                    <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 16px; font-weight: 700;">Sistema Sentinela AI</h2>
+                    <p style="color: #666; margin: 0; font-size: 12px;">Notificação Automática de Governança</p>
+                </div>
             </div>
         `;
 
         try {
-            await this.resend.emails.send({
-                from: this.fromEmail,
+            await this.sendEmailWithFallback({
                 to: riskManagerEmail,
                 subject: `[SOLICITAÇÃO] Alteração de Prazo - Notificação #${incident.id}`,
                 html: html
@@ -385,17 +430,14 @@ export class EmailService {
                     <p><strong>Novo Prazo Definido:</strong> ${newDeadline}</p>
                 </div>
 
-                <p>Por favor, prossiga com o preenchimento do Plano de Ação dentro do novo prazo estabelecido.</p>
-                
-                <a href="${process.env.APP_URL || 'http://localhost:5173'}/tratativa/${incident.id}" 
-                   style="display: inline-block; background-color: #003366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px;">
-                   Acessar Tratativa
-                </a>
+                <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 16px; font-weight: 700;">Equipe Sentinela AI</h2>
+                    <p style="color: #666; margin: 0; font-size: 12px;">Gestão de Prazos e Conformidade</p>
+                </div>
             </div>
         `;
 
-        await this.resend.emails.send({
-            from: 'Sentinela AI <onboarding@resend.dev>',
+        await this.sendEmailWithFallback({
             to: managerEmail,
             subject: `[DEFERIDO] Novo Prazo para Notificação #${incident.id}`,
             html
@@ -413,50 +455,45 @@ export class EmailService {
                     <p><strong>O prazo original permanece inalterado.</strong></p>
                 </div>
 
-                <p>Por favor, priorize o preenchimento do Plano de Ação o mais breve possível.</p>
-                
-                <a href="${process.env.APP_URL || 'http://localhost:5173'}/tratativa/${incident.id}" 
-                   style="display: inline-block; background-color: #003366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px;">
-                   Acessar Tratativa
-                </a>
+                <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 16px; font-weight: 700;">Equipe Sentinela AI</h2>
+                    <p style="color: #666; margin: 0; font-size: 12px;">Gestão de Riscos e Qualidade</p>
+                </div>
             </div>
         `;
 
-        await this.resend.emails.send({
-            from: 'Sentinela AI <onboarding@resend.dev>',
+        await this.sendEmailWithFallback({
             to: managerEmail,
             subject: `[INDEFERIDO] Solicitação de Prazo - Notificação #${incident.id}`,
             html
         });
     }
-    async sendPasswordResetEmail(email: string, name: string, newPassword: string) {
+    async sendPasswordResetEmail(email: string, name: string, resetLink: string) {
         const html = `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #003366;">Recuperação de Senha - Sentinela AI</h2>
                 <p>Olá <strong>${name}</strong>,</p>
                 <p>Recebemos uma solicitação de recuperação de senha para sua conta.</p>
                 
-                <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #003366;">
-                    <p style="margin: 5px 0;">Sua nova senha temporária é:</p>
-                    <p style="margin: 10px 0; font-size: 24px; font-weight: bold; color: #003366;">
-                        <code style="background-color: #e0e0e0; padding: 5px 10px; border-radius: 4px;">${newPassword}</code>
-                    </p>
+                <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #003366; text-align: center;">
+                    <p style="margin-bottom: 20px;">Clique no botão abaixo para definir sua nova senha. Este link expira em 1 hora.</p>
+                    <a href="${resetLink}" style="background-color: #003366; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">REDEFINIR MINHA SENHA</a>
                 </div>
 
-                <p style="color: #666; font-size: 14px;"><strong>IMPORTANTE:</strong> Por segurança, recomendamos que você altere esta senha após o primeiro login.</p>
+                <p style="color: #666; font-size: 14px;">Se o botão não funcionar, copie e cole este link no seu navegador:</p>
+                <p style="color: #003366; font-size: 12px; word-break: break-all;">${resetLink}</p>
                 
                 <p>Se você não solicitou esta alteração, por favor ignore este e-mail ou entre em contato com o suporte.</p>
-                
-                <br>
-                <a href="https://sentinela-ai.vercel.app/login" style="background-color: #003366; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Acessar Sistema</a>
+                <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px; text-align: center;">
+                    <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 16px; font-weight: 700;">Equipe Sentinela AI</h2>
+                </div>
             </div>
         `;
 
         try {
-            await this.resend.emails.send({
-                from: this.fromEmail,
+            await this.sendEmailWithFallback({
                 to: email,
-                subject: 'Sua Nova Senha - Sentinela AI',
+                subject: 'Redefinição de Senha - Sentinela AI',
                 html
             });
             console.log(`✅ Password reset email sent to ${email}`);
@@ -480,13 +517,15 @@ export class EmailService {
                 </div>
                 
                 <p>Entre em contato o mais rápido possível para liberar o acesso.</p>
+                <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <h2 style="color: #003366; margin: 0 0 5px 0; font-size: 16px; font-weight: 700;">Sentinela AI Bot</h2>
+                </div>
             </div>
         `;
 
         // Send to yourself (Admin)
-        await this.resend.emails.send({
-            from: this.fromEmail,
-            to: process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br', // Updated fallback
+        await this.sendEmailWithFallback({
+            to: process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br',
             subject: `[LEAD] Novo Teste Grátis: ${data.name} - ${data.hospital}`,
             html
         });

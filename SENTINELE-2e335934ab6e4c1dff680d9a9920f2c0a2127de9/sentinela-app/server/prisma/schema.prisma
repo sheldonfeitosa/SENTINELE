@@ -31,6 +31,8 @@ model User {
   subscriptionId      String?
   currentPeriodEnd    DateTime?
   createdAt           DateTime  @default(now())
+  resetToken          String?
+  resetTokenExpiry    DateTime?
   linkedinAccessToken String?
   linkedinUrn         String?
   articles            Article[]

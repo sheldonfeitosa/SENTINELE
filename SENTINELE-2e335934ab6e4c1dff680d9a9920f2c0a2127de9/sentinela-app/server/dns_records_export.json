@@ -1,0 +1,66 @@
+{
+  "data": {
+    "object": "domain",
+    "id": "70a9bdb0-4997-4238-b569-e1c61fa66146",
+    "name": "sentinelaai.com.br",
+    "status": "failed",
+    "created_at": "2026-02-20 15:10:16.881685+00",
+    "region": "sa-east-1",
+    "capabilities": {
+      "sending": "enabled",
+      "receiving": "enabled"
+    },
+    "records": [
+      {
+        "record": "DKIM",
+        "name": "resend._domainkey",
+        "value": "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCjifQz0G/K86dILaxmvv4WbWAkbyAvk4xm6auvtqiisnIrfmoJ2Gk5GMMQb7Q5Pb6lBw5q+deeF04FZmvPBX7Jd1Ob85p+UsV6W3tuqfAug9xlsX0jpnK30uXduO1QYOKuWaPZwAZRk8ByiHeAGnjNsIXY8RLCNgBUm6yxjiXFYwIDAQAB",
+        "type": "TXT",
+        "status": "failed",
+        "ttl": "Auto"
+      },
+      {
+        "record": "SPF",
+        "name": "send",
+        "type": "MX",
+        "ttl": "Auto",
+        "status": "failed",
+        "value": "feedback-smtp.sa-east-1.amazonses.com",
+        "priority": 10
+      },
+      {
+        "record": "SPF",
+        "name": "send",
+        "value": "v=spf1 include:amazonses.com ~all",
+        "type": "TXT",
+        "ttl": "Auto",
+        "status": "failed"
+      },
+      {
+        "record": "Receiving",
+        "name": "",
+        "value": "inbound-smtp.sa-east-1.amazonaws.com",
+        "type": "MX",
+        "priority": 10,
+        "status": "failed",
+        "ttl": "Auto"
+      }
+    ]
+  },
+  "error": null,
+  "headers": {
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "9d163d937a9164af-GIG",
+    "connection": "keep-alive",
+    "content-encoding": "br",
+    "content-type": "application/json; charset=utf-8",
+    "date": "Sat, 21 Feb 2026 12:27:54 GMT",
+    "etag": "W/\"3bc-UK/LFI7KP+syVRuHP4PlIs7UiQ8\"",
+    "ratelimit-limit": "2",
+    "ratelimit-policy": "2;w=1",
+    "ratelimit-remaining": "1",
+    "ratelimit-reset": "1",
+    "server": "cloudflare",
+    "transfer-encoding": "chunked"
+  }
+}

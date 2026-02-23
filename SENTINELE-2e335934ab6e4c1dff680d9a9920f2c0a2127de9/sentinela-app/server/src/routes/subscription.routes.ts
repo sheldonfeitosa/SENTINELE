@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma';
 
 const router = Router();
 
-const YOUR_DOMAIN = 'http://localhost:5173'; // Make this dynamic based on env
+const YOUR_DOMAIN = process.env.APP_URL || 'https://sentinelaai.com.br';
 
 router.post('/create-checkout-session', async (req: any, res) => {
     try {

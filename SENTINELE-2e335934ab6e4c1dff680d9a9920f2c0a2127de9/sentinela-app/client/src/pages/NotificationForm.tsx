@@ -88,8 +88,9 @@ export function NotificationForm() {
             const id = await apiService.createNotification({ ...data, tenantSlug });
             setCreatedId(id);
             setShowSuccessModal(true);
-        } catch (error) {
-            alert('Erro ao enviar notificação.');
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.details || error.response?.data?.error || 'Erro ao enviar notificação. Verifique sua conexão ou tente novamente.';
+            alert(errorMsg);
         } finally {
             setIsSubmitting(false);
         }
@@ -343,11 +344,6 @@ export function NotificationForm() {
                         <h3 className="text-2xl font-bold text-[#003366] mb-2">
                             NOTIFICAÇÃO ENVIADA COM SUCESSO!
                         </h3>
-                        {createdId && (
-                            <p className="text-sm text-gray-500 mb-6 bg-gray-50 py-2 rounded-lg border border-gray-100">
-                                ID do Evento: <span className="font-mono font-bold text-[#003366]">#{createdId}</span>
-                            </p>
-                        )}
                         <p className="text-gray-600 mb-8">
                             Agradecemos sua contribuição para a segurança do paciente. O setor responsável foi notificado.
                         </p>

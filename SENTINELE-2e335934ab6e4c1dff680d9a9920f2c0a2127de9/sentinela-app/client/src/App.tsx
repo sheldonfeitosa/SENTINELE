@@ -11,6 +11,7 @@ import { GanttPage } from './pages/GanttPage';
 import { PricingPage } from './pages/PricingPage';
 import SuccessPage from './pages/SuccessPage';
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import HomePage from './pages/HomePage';
 import { AdminDashboard } from './pages/AdminDashboard';
 
@@ -45,6 +46,7 @@ function App() {
       <ErrorBoundary>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/n/:tenantSlug" element={<NotificationForm />} />
 
           <Route path="/" element={<Layout />}>

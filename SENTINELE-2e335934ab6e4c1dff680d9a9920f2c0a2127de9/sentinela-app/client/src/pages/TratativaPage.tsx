@@ -32,6 +32,7 @@ export function TratativaPage() {
     const [investigationData, setInvestigationData] = useState<string | null>(null);
     const [isDeadlineRestriction, setIsDeadlineRestriction] = useState(false);
     const [isRejectionMode, setIsRejectionMode] = useState(false);
+    const [actionPlanStarted, setActionPlanStarted] = useState(false);
 
     // Deferral Mode State
     const [showDeferralModal, setShowDeferralModal] = useState(false);
@@ -157,15 +158,26 @@ export function TratativaPage() {
                     if (data.rootCause) setRootCause(data.rootCause);
                     if (data.actionPlan) setActionPlan(data.actionPlan);
                     if (data.actionPlanDeadline) {
-                        const [day, month, year] = data.actionPlanDeadline.split('/');
-                        const isoDate = `${year}-${month}-${day}`;
-                        setActionPlanDeadline(isoDate);
-                        setActionPlanDeadline(isoDate);
-                        // Also set initial deferral date
-                        setDeferralDate(isoDate);
+                        let isoDate = '';
+                        if (data.actionPlanDeadline.includes('/')) {
+                            const [day, month, year] = data.actionPlanDeadline.split('/');
+                            isoDate = `${year}-${month}-${day}`;
+                        } else if (data.actionPlanDeadline.includes('-')) {
+                            // Assume ISO format YYYY-MM-DD...
+                            isoDate = data.actionPlanDeadline.split('T')[0];
+                        }
+
+                        if (isoDate) {
+                            setActionPlanDeadline(isoDate);
+                            setDeferralDate(isoDate);
+                        }
                     }
                     if (data.investigationList) {
                         setInvestigationData(data.investigationList);
+                    }
+                    // Initialize button state based on persisted status
+                    if (data.actionPlanStatus === 'IN_PROGRESS') {
+                        setActionPlanStarted(true);
                     }
                 } else {
                     setError('Notificação não encontrada');
@@ -771,50 +783,97 @@ export function TratativaPage() {
                             />
                         </div>
 
-                        {/* Deadline Input */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                Prazo do Plano de Ação
-                                <span className="text-xs font-normal text-gray-500">(Opcional - Define o prazo no Gantt)</span>
+                        {/* Special Approval Header for Alta Gestão */}
+                        {new URLSearchParams(window.location.search).get('action') === 'approve_deadline' && (
+                            <div className="bg-gradient-to-r from-[#003366] to-[#004d99] text-white p-6 rounded-xl shadow-lg mb-8 border-l-8 border-yellow-400">
+                                <div className="flex items-center gap-4 mb-2">
+                                    <div className="bg-yellow-400 p-2 rounded-lg">
+                                        <Calendar className="w-6 h-6 text-[#003366]" />
+                                    </div>
+                                    <h2 className="text-xl font-extrabold uppercase tracking-tight">Canal de Autonomia - Alta Gestão</h2>
+                                </div>
+                                <p className="text-blue-100 text-sm leading-relaxed">
+                                    Sua intervenção técnica foi solicitada para destravar este fluxo. Como Diretor(a), você tem autonomia para
+                                    <strong> dilatar o prazo</strong> da tratativa ou <strong>exigir a resolução imediata</strong>.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Deadline Input - Enhanced */}
+                        <div className={`transition-all duration-300 ${new URLSearchParams(window.location.search).get('action') === 'approve_deadline'
+                            ? 'bg-yellow-50 p-6 border-2 border-yellow-300 rounded-2xl shadow-inner scale-[1.02]'
+                            : 'p-4 border border-gray-100 rounded-xl bg-gray-50'
+                            }`}>
+                            <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                {new URLSearchParams(window.location.search).get('action') === 'approve_deadline'
+                                    ? '📅 DEFINIR NOVO PRAZO PARA ESTA TRATATIVA'
+                                    : 'Prazo do Plano de Ação'}
                             </label>
-                            <input
-                                type="date"
-                                value={actionPlanDeadline}
-                                onChange={(e) => setActionPlanDeadline(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003366] outline-none"
-                            />
+
+                            <div className="flex flex-col md:flex-row items-center gap-4">
+                                <input
+                                    type="date"
+                                    value={actionPlanDeadline}
+                                    onChange={(e) => setActionPlanDeadline(e.target.value)}
+                                    className={`w-full md:w-64 p-4 border-2 rounded-xl focus:ring-4 focus:ring-yellow-200 outline-none shadow-sm font-bold text-lg text-[#003366] transition-all bg-white ${new URLSearchParams(window.location.search).get('action') === 'approve_deadline'
+                                        ? 'border-yellow-500'
+                                        : 'border-gray-200 focus:border-[#003366]'
+                                        }`}
+                                />
+                                {new URLSearchParams(window.location.search).get('action') === 'approve_deadline' && (
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-yellow-800">
+                                            Aprovação Direta (Blindagem Institucional)
+                                        </p>
+                                        <p className="text-xs text-yellow-600">
+                                            O novo prazo será registrado sob sua chancela e o gestor será notificado imediatamente.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="flex justify-end pt-4 gap-3">
-                            <button
-                                onClick={async () => {
-                                    if (!id) return;
-                                    if (!rootCause || !actionPlan) {
-                                        setToast({ message: 'Preencha a Causa Raiz e o Plano de Ação antes de iniciar.', type: 'error' });
-                                        return;
-                                    }
-
-                                    // Check if deadline is being modified after being set
-                                    if (notification.actionPlanDeadline) {
-                                        // Fix: Parse BR date format (dd/mm/yyyy) manually
-                                        const [day, month, year] = notification.actionPlanDeadline.split('/');
-                                        const originalDeadline = `${year}-${month}-${day}`;
-                                        const params = new URLSearchParams(window.location.search);
-                                        const isApprovalMode = params.get('action') === 'approve_deadline';
-
-                                        if (isApprovalMode) {
-                                            try {
-                                                await apiService.approveDeadline(Number(id), new Date(actionPlanDeadline));
-                                                setToast({ message: 'Prazo deferido e notificação enviada!', type: 'success' });
-                                                const updated = await apiService.getNotificationById(Number(id));
-                                                setNotification(updated);
-                                                navigate(window.location.pathname, { replace: true });
-                                                return;
-                                            } catch (error) {
-                                                console.error('Erro ao deferir prazo:', error);
-                                                setToast({ message: 'Erro ao deferir prazo.', type: 'error' });
-                                                return;
-                                            }
+                        <div className="flex justify-end pt-6 gap-4">
+                            {new URLSearchParams(window.location.search).get('action') === 'approve_deadline' ? (
+                                <button
+                                    onClick={async () => {
+                                        if (!id) return;
+                                        if (!actionPlanDeadline) {
+                                            setToast({ message: 'Selecione a nova data no calendário para continuar.', type: 'error' });
+                                            return;
+                                        }
+                                        try {
+                                            await apiService.approveDeadline(Number(id), new Date(actionPlanDeadline));
+                                            setToast({
+                                                message: 'AUTONOMIA EXERCIDA: Prazo dilatado e blindagem confirmada!',
+                                                type: 'success',
+                                                educational: true
+                                            });
+                                            setTimeout(() => navigate('/dashboard'), 2000);
+                                        } catch (error) {
+                                            setToast({ message: 'Erro ao registrar nova data.', type: 'error' });
+                                        }
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-black shadow-xl transition-all transform hover:scale-105 flex items-center gap-3 uppercase tracking-wider text-sm ring-4 ring-green-100"
+                                >
+                                    <CheckCircle2 className="w-5 h-5" />
+                                    CHANCELAR NOVO PRAZO
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={async () => {
+                                        if (!id) return;
+                                        if (!rootCause || !actionPlan) {
+                                            setToast({ message: 'Preencha a Causa Raiz e o Plano de Ação antes de iniciar.', type: 'error' });
+                                            return;
+                                        }
+                                        // Check if deadline is being modified after being set
+                                        let originalDeadline = '';
+                                        if (notification.actionPlanDeadline.includes('/')) {
+                                            const [day, month, year] = notification.actionPlanDeadline.split('/');
+                                            originalDeadline = `${year}-${month}-${day}`;
+                                        } else {
+                                            originalDeadline = notification.actionPlanDeadline.split('T')[0];
                                         }
 
                                         if (actionPlanDeadline !== originalDeadline) {
@@ -822,42 +881,54 @@ export function TratativaPage() {
                                             setShowDeadlineModal(true);
                                             return;
                                         }
-                                    }
 
+                                        const createLocalDate = (dateString: string) => {
+                                            const [y, m, d] = dateString.split('-').map(Number);
+                                            return new Date(y, m - 1, d);
+                                        };
 
-                                    const createLocalDate = (dateString: string) => {
-                                        const [y, m, d] = dateString.split('-').map(Number);
-                                        return new Date(y, m - 1, d);
-                                    };
+                                        try {
+                                            await apiService.updateNotification(Number(id), {
+                                                rootCause,
+                                                actionPlan,
+                                                actionPlanDeadline: actionPlanDeadline ? createLocalDate(actionPlanDeadline) : undefined
+                                            });
+                                            await apiService.startActionPlan(Number(id), actionPlanDeadline ? createLocalDate(actionPlanDeadline) : undefined);
+                                            setActionPlanStarted(true);
+                                            setToast({
+                                                message: 'Plano de Ação iniciado com sucesso!',
+                                                type: 'success',
+                                                educational: true
+                                            });
+                                            const updated = await apiService.getNotificationById(Number(id));
+                                            setNotification(updated);
+                                        } catch (error) {
+                                            console.error('Erro ao iniciar plano de ação:', error);
+                                            setToast({ message: 'Erro ao iniciar plano de ação.', type: 'error' });
+                                        }
+                                    }}
+                                    disabled={!rootCause || !actionPlan}
+                                    className={`px-6 py-3 rounded-lg font-bold shadow-md transition-colors flex items-center gap-2 ${actionPlanStarted
+                                        ? 'bg-green-600 text-white cursor-default'
+                                        : !rootCause || !actionPlan
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-[#003366] hover:bg-[#002244] text-white'
+                                        }`}
+                                >
+                                    {actionPlanStarted ? (
+                                        <>
+                                            <CheckCircle2 className="w-5 h-5" />
+                                            PLANO DE AÇÃO INICIADO
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Play className="w-5 h-5" />
+                                            INICIAR PLANO DE AÇÃO E SALVAR
+                                        </>
+                                    )}
+                                </button>
+                            )}
 
-                                    try {
-                                        await apiService.updateNotification(Number(id), {
-                                            rootCause,
-                                            actionPlan,
-                                            actionPlanDeadline: actionPlanDeadline ? createLocalDate(actionPlanDeadline) : undefined
-                                        });
-                                        await apiService.startActionPlan(Number(id), actionPlanDeadline ? createLocalDate(actionPlanDeadline) : undefined);
-                                        setToast({
-                                            message: 'Plano de Ação iniciado com sucesso!',
-                                            type: 'success',
-                                            educational: true
-                                        });
-                                        const updated = await apiService.getNotificationById(Number(id));
-                                        setNotification(updated);
-                                    } catch (error) {
-                                        console.error('Erro ao iniciar plano de ação:', error);
-                                        setToast({ message: 'Erro ao iniciar plano de ação.', type: 'error' });
-                                    }
-                                }}
-                                disabled={!rootCause || !actionPlan}
-                                className={`px-6 py-3 rounded-lg font-bold shadow-md transition-colors flex items-center gap-2 ${!rootCause || !actionPlan
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#003366] hover:bg-[#002244] text-white'
-                                    }`}
-                            >
-                                <Play className="w-5 h-5" />
-                                {new URLSearchParams(window.location.search).get('action') === 'approve_deadline' ? 'SALVAR NOVO PRAZO' : 'INICIAR PLANO DE AÇÃO E SALVAR'}
-                            </button>
                             {isRejectionMode && (
                                 <button
                                     onClick={async () => {

@@ -11,6 +11,12 @@ export class RiskManagerRepository {
         });
     }
 
+    async findByEmail(email: string) {
+        return prisma.user.findUnique({
+            where: { email }
+        });
+    }
+
     async findAll(tenantId: string) {
         return prisma.user.findMany({
             where: { tenantId },

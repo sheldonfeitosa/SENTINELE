@@ -137,7 +137,39 @@ TIPO: "${eventType}"
     }
 
     async generateFiveWhys(description: string): Promise<any> {
-        return {};
+        const prompt = `
+            Atue como um especialista em segurança do paciente.
+            Realize uma análise de "5 Porquês" para o incidente descrito.
+            Retorne APENAS um JSON válido.
+
+            DESCRIÇÃO: "${description}"
+
+            Estrutura JSON:
+            {
+                "why1": "Por que o evento imediato aconteceu?",
+                "why2": "Por que o motivo acima ocorreu?",
+                "why3": "Por que a falha anterior ocorreu?",
+                "why4": "Por que a causa acima não foi contida?",
+                "why5": "Por que a causa raiz sistêmica existe?",
+                "rootCause": "Resumo da causa raiz"
+            }
+        `;
+
+        try {
+            const text = await this.callWithRetry(prompt);
+            const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(clean);
+        } catch (e: any) {
+            console.error("AI 5 Whys Failed:", e.message);
+            return {
+                why1: "Falha na geração automática.",
+                why2: "-",
+                why3: "-",
+                why4: "-",
+                why5: "-",
+                rootCause: "IA Indisponível."
+            };
+        }
     }
 
     private generateOfflineAnalysis(description: string): any {

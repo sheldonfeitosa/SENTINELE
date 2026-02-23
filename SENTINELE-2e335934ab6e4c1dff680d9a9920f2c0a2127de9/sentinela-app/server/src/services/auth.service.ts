@@ -3,8 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { EmailService } from './email.service';
 import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 const SALT_ROUNDS = 10;
-const JWT_SECRET = process.env.JWT_SECRET || 'sentinela-secret-key-change-me';
+const JWT_SECRET = (process.env.JWT_SECRET || 'sentinela-secret-key-change-me').replace(/[\r\n]/g, '').trim();
 
 interface RegisterData {
     email: string;
@@ -190,34 +191,63 @@ export class AuthService {
             data.email,
             data.name,
             password,
-            process.env.APP_URL || 'http://localhost:5173'
+            process.env.APP_URL || 'https://sentinelaai.com.br'
         );
 
         return { password };
     }
 
     async resetPassword(email: string): Promise<void> {
-        // 1. Find User
-        const user = await prisma.user.findUnique({
-            where: { email }
-        });
-
+        const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
             throw new Error('Usuário não encontrado.');
         }
 
-        // 2. Generate Random Password (8 chars)
-        const newPassword = Math.random().toString(36).slice(-8);
-        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        // Generate token
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiry = new Date(Date.now() + 3600000); // 1 hour
 
-        // 3. Update User Password
         await prisma.user.update({
             where: { id: user.id },
-            data: { password: hashedPassword }
+            data: {
+                resetToken: token,
+                resetTokenExpiry: expiry
+            }
         });
 
-        // 4. Send Reset Email
+        const resetLink = `${process.env.APP_URL || 'https://sentinelaai.com.br'}/reset-password?token=${token}`;
         const emailService = new EmailService();
-        await emailService.sendPasswordResetEmail(email, user.name, newPassword);
+        await emailService.sendPasswordResetEmail(email, user.name, resetLink);
+    }
+
+    async verifyResetToken(token: string): Promise<User> {
+        const user = await prisma.user.findFirst({
+            where: {
+                resetToken: token,
+                resetTokenExpiry: {
+                    gt: new Date()
+                }
+            }
+        });
+
+        if (!user) {
+            throw new Error('Token inválido ou expirado.');
+        }
+
+        return user;
+    }
+
+    async updatePasswordWithToken(token: string, newPassword: string): Promise<void> {
+        const user = await this.verifyResetToken(token);
+        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                resetToken: null,
+                resetTokenExpiry: null
+            }
+        });
     }
 }

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { apiService, API_BASE } from '../services/ApiService'; // Import API_BASE
 import axios from 'axios';
 import {
-    LayoutDashboard, AlertCircle, CheckCircle2, ArrowRight, Star, ShieldCheck, Zap, Mail, Lock, X
+    AlertCircle, CheckCircle2, ArrowRight, Star, ShieldCheck, Zap, Mail, Lock, X
 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -23,7 +23,7 @@ const LoginPage: React.FC = () => {
         setError('');
         try {
             await apiService.resetPassword(resetEmail);
-            alert('Uma nova senha foi enviada para o seu e-mail!');
+            alert('Um link de recuperação foi enviado para o seu e-mail!');
             setIsResetModalOpen(false);
             setResetEmail('');
         } catch (err: any) {

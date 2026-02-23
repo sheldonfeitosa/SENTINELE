@@ -61,7 +61,7 @@ export class ArticleController {
                     });
 
                     if (user?.linkedinAccessToken && user?.linkedinUrn) {
-                        const articleUrl = `http://localhost:5173/insights/${article.id}`; // TODO: Use real domain in prod
+                        const articleUrl = `${process.env.APP_URL || 'https://sentinelaai.com.br'}/insights/${article.id}`;
                         const postId = await linkedinService.createPost(
                             user.linkedinAccessToken,
                             user.linkedinUrn,

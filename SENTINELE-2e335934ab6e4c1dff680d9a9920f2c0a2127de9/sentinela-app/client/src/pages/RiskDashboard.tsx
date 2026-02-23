@@ -199,9 +199,10 @@ export function RiskDashboard() {
             await apiService.notifyHighManagement(selectedId);
             setModalOpen(false);
             setToast({ message: 'Reporte enviado à Alta Gestão com sucesso!', type: 'success' });
-        } catch (err) {
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.details || err.response?.data?.error || 'Erro ao enviar reporte. Verifique se existem gestores de Alta Gestão cadastrados.';
             console.error('Erro ao reportar:', err);
-            setToast({ message: 'Erro ao enviar reporte. Verifique se existem gestores de Alta Gestão cadastrados.', type: 'error' });
+            setToast({ message: errorMsg, type: 'error' });
         } finally {
             setActionLoading(false);
             setSelectedId(null);

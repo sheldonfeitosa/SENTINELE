@@ -62,7 +62,33 @@ router.post('/reset-password', async (req, res) => {
             return res.status(400).json({ error: 'Email é obrigatório' });
         }
         await authService.resetPassword(email);
-        res.json({ message: 'Nova senha enviada para o seu e-mail.' });
+        res.json({ message: 'Um link de recuperação foi enviado para o seu e-mail.' });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.get('/verify-reset-token', async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token) {
+            return res.status(400).json({ error: 'Token é obrigatório' });
+        }
+        await authService.verifyResetToken(token as string);
+        res.json({ valid: true });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+router.post('/update-password-with-token', async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) {
+            return res.status(400).json({ error: 'Token e nova senha são obrigatórios' });
+        }
+        await authService.updatePasswordWithToken(token, newPassword);
+        res.json({ message: 'Senha atualizada com sucesso.' });
     } catch (error: any) {
         res.status(400).json({ error: error.message });
     }

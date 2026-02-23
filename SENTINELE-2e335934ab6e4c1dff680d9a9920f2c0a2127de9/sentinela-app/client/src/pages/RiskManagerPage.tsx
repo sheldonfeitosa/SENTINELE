@@ -78,13 +78,7 @@ export function RiskManagerPage() {
                 return;
             }
 
-            // Check for duplicate email (Client-side)
-            const isDuplicate = managers.some(m => m.email === currentManager.email && m.id !== currentManager.id);
-            if (isDuplicate) {
-                alert('Este email já está cadastrado para outro gestor.');
-                setIsSaving(false);
-                return;
-            }
+            // Removed client-side duplicate check to allow backend update/merge logic
 
             if (currentManager.id) {
                 console.log('Updating manager...', currentManager.id);

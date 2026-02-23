@@ -18,10 +18,10 @@ async function main() {
 
     try {
         const data = await resend.emails.send({
-            from: 'onboarding@resend.dev', // Default testing domain
-            to: 'sheldonfeitosa@gmail.com', // User's email
-            subject: 'Teste de Envio Sentinela AI',
-            html: '<p>Se você recebeu este email, a configuração está correta! 🚀</p>'
+            from: 'Sentinela AI <nao-responda@sentinelaai.com.br>',
+            to: 'qualidade@inmceb.med.br',
+            subject: 'Teste de Envio Sentinela AI - Domínio Verificado!',
+            html: '<p>Este e-mail confirma que o domínio <strong>sentinelaai.com.br</strong> foi verificado com sucesso! 🚀</p>'
         });
 
         console.log('✅ Email sent successfully!');

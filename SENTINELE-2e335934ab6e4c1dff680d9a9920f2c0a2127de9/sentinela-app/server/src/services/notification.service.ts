@@ -94,11 +94,19 @@ export class NotificationService {
                 await this.emailService.sendActionRequest(createdNotification, sectorManager.email);
             }
 
-            const riskManagerEmail = process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br';
-            await this.emailService.sendIncidentNotification(createdNotification, riskManagerEmail);
+            // Notify all Risk Managers (ADMIN)
+            const allManagers = await this.riskManagerRepo.findAll(tenantId);
+            const riskManagers = allManagers.filter(m => m.role === 'ADMIN');
+            const riskManagerEmails = riskManagers.length > 0
+                ? riskManagers.map(m => m.email)
+                : [process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br'];
 
-        } catch (emailError) {
-            console.error('[Flow] Error sending automated emails:', emailError);
+            for (const email of riskManagerEmails) {
+                await this.emailService.sendIncidentNotification(createdNotification, email);
+            }
+
+        } catch (emailError: any) {
+            console.error('[Flow] Error sending automated emails:', emailError.message);
         }
 
         return createdNotification;
@@ -248,16 +256,35 @@ export class NotificationService {
 
         // Find managers for the specific tenant
         const managers = await this.riskManagerRepo.findAll(tenantId);
-        const highManagementEmails = managers
+
+        // 1. Try Alta Gestão role
+        let highManagementEmails = managers
             .filter(m => m.role === 'ALTA_GESTAO')
             .map(m => m.email);
 
+        // 2. Fallback to ADMIN if no ALTA_GESTAO found
         if (highManagementEmails.length === 0) {
-            throw new Error('No High Management contacts found');
+            console.log(`[Flow] No ALTA_GESTAO found for tenant ${tenantId}, falling back to ADMINs.`);
+            highManagementEmails = managers
+                .filter(m => m.role === 'ADMIN')
+                .map(m => m.email);
         }
 
+        // 3. Absolute fallback for testing
+        if (highManagementEmails.length === 0) {
+            console.log(`[Flow] No managers found, sending to fallback email.`);
+            highManagementEmails = [process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com'];
+        }
+
+        // Always include Sheldon for validation if it's the specific test case
+        if (!highManagementEmails.includes('sheldonfeitosa@gmail.com')) {
+            // Optional: add to list if not present for debugging
+            // highManagementEmails.push('sheldonfeitosa@gmail.com');
+        }
+
+        console.log(`[Flow] Triggering High Management Report to: ${highManagementEmails.join(', ')}`);
         await this.emailService.sendHighManagementReport(incident, highManagementEmails);
-        return { message: 'High Management notified' };
+        return { message: 'High Management notified', recipients: highManagementEmails };
     }
 
     async checkOverdueTratativas(tenantId: string) {
@@ -293,7 +320,12 @@ export class NotificationService {
         const notification = await this.repository.findById(id, tenantId);
         if (!notification) throw new Error('Notification not found');
 
-        const riskManagerEmail = process.env.RISK_MANAGER_EMAIL || 'admin@sentinela.ai';
+        // Find all Risk Managers (ADMIN) for this specific tenant
+        const allManagers = await this.riskManagerRepo.findAll(tenantId);
+        const riskManagers = allManagers.filter(m => m.role === 'ADMIN');
+        const riskManagerEmails = riskManagers.length > 0
+            ? riskManagers.map(m => m.email)
+            : [process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com', 'qualidade@inmceb.med.br'];
 
         const oldDeadline = notification.actionPlanDeadline
             ? new Date(notification.actionPlanDeadline).toLocaleDateString('pt-BR')
@@ -305,9 +337,17 @@ export class NotificationService {
             ...notification
         };
 
-        await this.emailService.sendRiskManagerContactEmail(incidentData, requesterEmail || 'Anônimo', message, riskManagerEmail, oldDeadline);
+        console.log(`[Flow] Notifying Risk Managers of Deadline Change Request: ${riskManagerEmails.join(', ')}`);
+        for (const email of riskManagerEmails) {
+            try {
+                await this.emailService.sendRiskManagerContactEmail(incidentData, requesterEmail || 'Anônimo', message, email, oldDeadline);
+                console.log(`✅ Deadline Change Request email sent to: ${email}`);
+            } catch (err: any) {
+                console.error(`❌ Failed to send Deadline Change Request email to ${email}:`, err.message);
+            }
+        }
 
-        return { message: 'Email sent to Risk Manager' };
+        return { message: 'Email sent to Risk Manager(s)' };
     }
 
     async approveDeadline(id: number, tenantId: string, newDeadline: Date) {
@@ -315,17 +355,23 @@ export class NotificationService {
         if (!notification) throw new Error('Notification not found');
 
         // Update deadline
+        console.log(`[Flow] Approving deadline for incident ${id} to ${newDeadline.toISOString()}`);
         await this.repository.update(id, tenantId, { actionPlanDeadline: newDeadline });
 
-        // Find sector manager for this tenant
-        const managers = await this.riskManagerRepo.findAll(tenantId);
-        // Simple check: if manager's sectors string includes the notified sector
-        const sectorManager = managers.find(m => m.sectors.includes(notification.notifySector) && m.role === 'GESTOR_SETOR');
+        // Find sector manager for this tenant using the robust repository method
+        const sectorManager = await this.riskManagerRepo.findBySector(notification.notifySector, tenantId);
 
         if (sectorManager) {
+            console.log(`[Flow] Notifying sector manager ${sectorManager.email} about deadline approval`);
             await this.emailService.sendDeadlineApprovalEmail(notification, newDeadline.toLocaleDateString('pt-BR'), sectorManager.email);
         } else {
-            console.warn(`No sector manager found for sector ${notification.notifySector}`);
+            console.warn(`[Flow] No sector manager found for sector ${notification.notifySector} in tenant ${tenantId}. Notifying Admins.`);
+            // Fallback: Notify Admins if no sector manager is found
+            const allManagers = await this.riskManagerRepo.findAll(tenantId);
+            const admins = allManagers.filter(m => m.role === 'ADMIN');
+            for (const admin of admins) {
+                await this.emailService.sendDeadlineApprovalEmail(notification, newDeadline.toLocaleDateString('pt-BR'), admin.email);
+            }
         }
 
         return { message: 'Deadline approved and email sent' };
@@ -336,13 +382,18 @@ export class NotificationService {
         if (!notification) throw new Error('Notification not found');
 
         // Find sector manager for this tenant
-        const managers = await this.riskManagerRepo.findAll(tenantId);
-        const sectorManager = managers.find(m => m.sectors.includes(notification.notifySector) && m.role === 'GESTOR_SETOR');
+        const sectorManager = await this.riskManagerRepo.findBySector(notification.notifySector, tenantId);
 
         if (sectorManager) {
             await this.emailService.sendDeadlineRejectionEmail(notification, sectorManager.email);
         } else {
-            console.warn(`No sector manager found for sector ${notification.notifySector}`);
+            console.warn(`No sector manager found for sector ${notification.notifySector} in tenant ${tenantId}`);
+            // Fallback: Notify Admins
+            const allManagers = await this.riskManagerRepo.findAll(tenantId);
+            const admins = allManagers.filter(m => m.role === 'ADMIN');
+            for (const admin of admins) {
+                await this.emailService.sendDeadlineRejectionEmail(notification, admin.email);
+            }
         }
 
         return { message: 'Deadline rejected and email sent' };
