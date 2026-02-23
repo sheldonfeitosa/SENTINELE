@@ -56,6 +56,7 @@ function App() {
            */}
           <Route path="/n/:tenantSlug" element={<NotificationForm />} />
 
+
           {/*
            * ═══════════════════════════════════════════════════════
            * ROTAS DE AUTENTICAÇÃO
@@ -82,6 +83,9 @@ function App() {
                 <RiskDashboard />
               </ProtectedRoute>
             } />
+
+            {/* /notificacao — dentro do Layout (com header/padding), sem exigir login */}
+            <Route path="notificacao" element={<NotificationForm />} />
 
             <Route path="dashboard" element={<Navigate to="/gestao-risco" replace />} />
 

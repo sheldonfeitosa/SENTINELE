@@ -23,7 +23,12 @@ type FormData = {
 import { useParams } from 'react-router-dom';
 
 export function NotificationForm() {
-    const { tenantSlug } = useParams<{ tenantSlug: string }>();
+    const { tenantSlug: slugFromUrl } = useParams<{ tenantSlug: string }>();
+
+    // Se não há slug na URL (rota /notificacao), tenta usar o slug do usuário logado
+    const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}');
+    const tenantSlug = slugFromUrl || userFromStorage?.tenant?.slug;
+
     const [selectedType, setSelectedType] = React.useState<'EVENTO ADVERSO' | 'NÃO CONFORMIDADE'>('EVENTO ADVERSO');
     const { register, handleSubmit, setValue, getValues, formState: { errors } } = useForm<FormData>();
 

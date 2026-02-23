@@ -30,6 +30,7 @@ interface AuthResponse {
         tenant: {
             id: string;
             name: string;
+            slug: string;
         }
     }
 }
@@ -87,7 +88,8 @@ export class AuthService {
                 role: result.role,
                 tenant: {
                     id: result.tenant.id,
-                    name: result.tenant.name
+                    name: result.tenant.name,
+                    slug: result.tenant.slug
                 }
             }
         };
@@ -122,7 +124,8 @@ export class AuthService {
                 role: user.role,
                 tenant: {
                     id: user.tenant.id,
-                    name: user.tenant.name
+                    name: user.tenant.name,
+                    slug: user.tenant.slug
                 }
             }
         };
