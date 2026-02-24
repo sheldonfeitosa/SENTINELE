@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiService } from '../services/ApiService';
 import { type Notification } from '../services/MockDataService';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Download, RefreshCw, Activity, AlertTriangle, Clock, CheckCircle2, Building2, Brain, Mail } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, Activity, AlertTriangle, Clock, CheckCircle2, Building2, Brain, Mail, Link2, Copy, Check } from 'lucide-react';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { EmailModal } from '../components/EmailModal';
 import { Toast, type ToastType } from '../components/ui/Toast';
@@ -26,6 +26,8 @@ export function RiskDashboard() {
     const [highlightedId, setHighlightedId] = useState<number | null>(null);
     const [reanalyzingId, setReanalyzingId] = useState<number | null>(null);
     const [hospitalName, setHospitalName] = useState('Hospital');
+    const [tenantSlug, setTenantSlug] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
 
     // Email Modal State
     const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -48,11 +50,22 @@ export function RiskDashboard() {
                 } else {
                     setHospitalName('Hospital Geral');
                 }
+                if (user.tenant?.slug) {
+                    setTenantSlug(user.tenant.slug);
+                }
             } catch (e) {
                 console.error('Failed to parse user data');
             }
         }
     }, []);
+
+    const handleCopyLink = () => {
+        const url = `https://sentinelaai.com.br/n/${tenantSlug}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
 
     const handleRowClick = (id: number) => {
         setHighlightedId(id);
@@ -392,6 +405,32 @@ export function RiskDashboard() {
                     </Link>
                 </div>
             </div>
+
+            {/* Banner: Link Público de Notificação */}
+            {tenantSlug && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-blue-700 shrink-0">
+                        <Link2 className="w-4 h-4" />
+                        <span className="text-sm font-bold">Link do Formulário Público:</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <code className="text-xs bg-white border border-blue-200 text-blue-800 px-3 py-1.5 rounded-lg flex-1 truncate">
+                            sentinelaai.com.br/n/{tenantSlug}
+                        </code>
+                        <button
+                            onClick={handleCopyLink}
+                            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copied
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
+                        >
+                            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copied ? 'Copiado!' : 'Copiar'}
+                        </button>
+                    </div>
+                    <p className="text-xs text-blue-500 sm:hidden">Compartilhe com os tablets dos setores</p>
+                </div>
+            )}
 
             {/* Filters Bar */}
             {showFilters && (

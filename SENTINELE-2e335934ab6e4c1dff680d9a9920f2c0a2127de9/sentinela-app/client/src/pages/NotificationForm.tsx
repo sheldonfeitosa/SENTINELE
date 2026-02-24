@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { ShieldCheck, Brain, Scale, Activity, Mic, MicOff, CheckCircle } from 'lucide-react';
 import { apiService } from '../services/ApiService';
@@ -37,6 +38,7 @@ export function NotificationForm() {
     const [showSuccessModal, setShowSuccessModal] = React.useState(false);
     const [createdId, setCreatedId] = React.useState<number | null>(null);
     const [hospitalName, setHospitalName] = React.useState<string | null>(null);
+    const [loadError, setLoadError] = React.useState<string | null>(null);
 
     // Use custom hook
     const { isListening, stopListening, startListening, warning } = useSpeechRecognition();
@@ -70,10 +72,15 @@ export function NotificationForm() {
                     apiService.getSectors(tenantSlug),
                     tenantSlug ? apiService.getTenantInfo(tenantSlug) : Promise.resolve(null)
                 ]);
-                setSectors(sectorsData);
+                if ((!sectorsData || sectorsData.length === 0) && !tenantInfo) {
+                    setLoadError('Link inválido: Hospital não identificado ou sem configuração de setores.');
+                }
+                setSectors(sectorsData || []);
                 if (tenantInfo?.name) setHospitalName(tenantInfo.name);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Failed to load data', error);
+                const msg = error?.response?.data?.error || error.message || 'Erro de conexão';
+                setLoadError(`Falha ao carregar dados: ${msg}`);
             }
         };
         loadData();
@@ -105,6 +112,33 @@ export function NotificationForm() {
             setIsSubmitting(false);
         }
     };
+
+    if (loadError) {
+        return (
+            <div className="min-h-screen bg-[#F4F6F9] flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Activity className="w-8 h-8 text-amber-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-[#003366] mb-2">{loadError === 'Link inválido' ? 'Link inválido' : 'Erro de Conexão'}</h2>
+                    <p className="text-gray-500 text-sm mb-6">
+                        {loadError === 'Link inválido'
+                            ? 'Este link não está associado a nenhum hospital. Use o link específico da sua instituição:'
+                            : `Ocorreu um problema ao carregar os dados: ${loadError}`}
+                    </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                        <p className="text-xs text-blue-500 mb-1 font-medium uppercase tracking-wide">Formato correto</p>
+                        <code className="text-sm font-bold text-blue-800">
+                            sentinelaai.com.br/n/<span className="text-blue-500">seu-hospital</span>
+                        </code>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                        Se você é gestor, <a href="/login" className="text-[#003366] font-bold underline">faça login aqui</a>.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -347,8 +381,8 @@ export function NotificationForm() {
                     </div>
                 </div>
             </aside>
-            {/* Success Modal — Notificador anônimo, sem redirecionamento para área de gestão */}
-            {showSuccessModal && (
+            {/* Success Modal rendered via Portal to avoid removeChild DOM conflicts */}
+            {showSuccessModal && ReactDOM.createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center transform transition-all animate-in zoom-in-95 duration-300">
                         <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-6">
@@ -376,7 +410,8 @@ export function NotificationForm() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
