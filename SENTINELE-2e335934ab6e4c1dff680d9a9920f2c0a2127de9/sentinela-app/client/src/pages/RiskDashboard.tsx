@@ -28,6 +28,8 @@ export function RiskDashboard() {
     const [hospitalName, setHospitalName] = useState('Hospital');
     const [tenantSlug, setTenantSlug] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+    const [newNotifIds, setNewNotifIds] = useState<Set<number>>(new Set());
 
     // Email Modal State
     const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -133,13 +135,38 @@ export function RiskDashboard() {
 
     useEffect(() => {
         loadData();
+
+        // Polling automático a cada 30 segundos
+        const interval = setInterval(() => {
+            loadData(true);
+        }, 30000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const loadData = async (silent = false) => {
         if (!silent) setLoading(true);
         try {
             const data = await apiService.getNotifications();
-            setNotifications(data);
+            setNotifications(prev => {
+                // Detecta novas notificações comparando IDs
+                if (silent && prev.length > 0) {
+                    const prevIds = new Set(prev.map(n => n.id));
+                    const novas = data.filter(n => !prevIds.has(n.id));
+                    if (novas.length > 0) {
+                        const msg = novas.length === 1
+                            ? `Nova notificação recebida! (#${novas[0].id})`
+                            : `${novas.length} novas notificações recebidas!`;
+                        setToast({ message: msg, type: 'success' });
+                        // Destaca as novas linhas por 5 segundos
+                        const novosIds = new Set(novas.map(n => n.id));
+                        setNewNotifIds(novosIds);
+                        setTimeout(() => setNewNotifIds(new Set()), 5000);
+                    }
+                }
+                return data;
+            });
+            setLastUpdated(new Date());
         } catch (error) {
             console.error('Failed to load notifications:', error);
         } finally {
@@ -362,7 +389,15 @@ export function RiskDashboard() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div>
                     <h2 className="text-xl font-bold text-[#003366]">{hospitalName}</h2>
-                    <p className="text-sm text-gray-500">Monitoramento em tempo real de eventos adversos</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        <p className="text-xs text-gray-400">
+                            Ao vivo · Atualizado às {lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </p>
+                    </div>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className="relative flex-1 sm:flex-none">
@@ -420,8 +455,8 @@ export function RiskDashboard() {
                         <button
                             onClick={handleCopyLink}
                             className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${copied
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
                                 }`}
                         >
                             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -675,7 +710,12 @@ export function RiskDashboard() {
                                     <tr
                                         key={n.id}
                                         onClick={() => handleRowClick(n.id)}
-                                        className={`transition-colors group cursor-pointer ${highlightedId === n.id ? '!bg-blue-100 border-l-4 border-l-[#003366]' : 'hover:bg-blue-50/50 border-l-4 border-l-transparent'}`}
+                                        className={`transition-colors group cursor-pointer ${newNotifIds.has(n.id)
+                                                ? '!bg-green-50 border-l-4 border-l-green-500 animate-pulse'
+                                                : highlightedId === n.id
+                                                    ? '!bg-blue-100 border-l-4 border-l-[#003366]'
+                                                    : 'hover:bg-blue-50/50 border-l-4 border-l-transparent'
+                                            }`}
                                     >
                                         <td className={`px-4 py-3 font-medium text-[#003366] sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${highlightedId === n.id ? '!bg-blue-100' : 'bg-white group-hover:bg-blue-50/50'}`}>
                                             #{n.id}

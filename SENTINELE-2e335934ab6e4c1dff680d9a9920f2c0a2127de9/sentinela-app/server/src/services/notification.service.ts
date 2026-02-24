@@ -1,6 +1,7 @@
 import { NotificationRepository } from '../repositories/notification.repository';
 import { AIService } from './ai.service';
 import { EmailService } from './email.service';
+import { AuthService } from './auth.service';
 import { RiskManagerRepository } from '../repositories/risk-manager.repository';
 import sanitizeHtml from 'sanitize-html';
 import { prisma } from '../lib/prisma';
@@ -10,12 +11,29 @@ export class NotificationService {
     private aiService: AIService;
     private emailService: EmailService;
     private riskManagerRepo: RiskManagerRepository;
+    private authService: AuthService;
 
     constructor() {
         this.repository = new NotificationRepository();
         this.aiService = new AIService();
         this.emailService = new EmailService();
         this.riskManagerRepo = new RiskManagerRepository();
+        this.authService = new AuthService();
+    }
+
+    /** Gera a URL de acesso mágico para um email de gestor. */
+    private async buildMagicUrl(email: string, notificationId: number, suffix = ''): Promise<string> {
+        const base = process.env.APP_URL || 'https://sentinelaai.com.br';
+        try {
+            const token = await this.authService.generateMagicToken(email);
+            if (token) {
+                const redirect = encodeURIComponent(`/tratativa/${notificationId}${suffix}`);
+                return `${base}/acesso?token=${token}&redirect=${redirect}`;
+            }
+        } catch (e) {
+            console.warn(`[MagicLink] Could not generate token for ${email}:`, e);
+        }
+        return `${base}/tratativa/${notificationId}${suffix}`;
     }
 
     async createNotification(data: any, authTenantId?: string) {
@@ -91,7 +109,8 @@ export class NotificationService {
             const sectorManager = await this.riskManagerRepo.findBySector(targetSector, tenantId);
 
             if (sectorManager) {
-                await this.emailService.sendActionRequest(createdNotification, sectorManager.email);
+                const url = await this.buildMagicUrl(sectorManager.email, createdNotification.id);
+                await this.emailService.sendActionRequest(createdNotification, sectorManager.email, url);
             }
 
             // Notify all Risk Managers (ADMIN)
@@ -102,7 +121,8 @@ export class NotificationService {
                 : [process.env.RISK_MANAGER_EMAIL || 'qualidade@inmceb.med.br'];
 
             for (const email of riskManagerEmails) {
-                await this.emailService.sendIncidentNotification(createdNotification, email);
+                const url = await this.buildMagicUrl(email, createdNotification.id);
+                await this.emailService.sendIncidentNotification(createdNotification, email, url);
             }
 
         } catch (emailError: any) {
@@ -246,7 +266,8 @@ export class NotificationService {
         const incident = await this.repository.findById(id, tenantId);
         if (!incident) throw new Error('Incident not found');
 
-        await this.emailService.sendActionRequest(incident, sectorManagerEmail);
+        const url = await this.buildMagicUrl(sectorManagerEmail, id);
+        await this.emailService.sendActionRequest(incident, sectorManagerEmail, url);
         return { message: 'Email forwarded to sector manager' };
     }
 
@@ -283,7 +304,10 @@ export class NotificationService {
         }
 
         console.log(`[Flow] Triggering High Management Report to: ${highManagementEmails.join(', ')}`);
-        await this.emailService.sendHighManagementReport(incident, highManagementEmails);
+        for (const email of highManagementEmails) {
+            const url = await this.buildMagicUrl(email, id);
+            await this.emailService.sendHighManagementReport(incident, [email], url);
+        }
         return { message: 'High Management notified', recipients: highManagementEmails };
     }
 

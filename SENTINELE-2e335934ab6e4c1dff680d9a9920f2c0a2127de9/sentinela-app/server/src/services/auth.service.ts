@@ -253,4 +253,68 @@ export class AuthService {
             }
         });
     }
+
+    /**
+     * Gera um token de acesso mágico para o gestor.
+     * Usado nos links de email para acesso direto sem senha.
+     * Expira em 7 dias.
+     */
+    async generateMagicToken(userEmail: string): Promise<string | null> {
+        const user = await prisma.user.findUnique({ where: { email: userEmail } });
+        if (!user) return null;
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                resetToken: token,
+                resetTokenExpiry: expiry
+            }
+        });
+
+        return token;
+    }
+
+    /**
+     * Autentica o gestor usando um token mágico de email.
+     * Retorna um JWT completo + dados do usuário.
+     */
+    async loginWithMagicToken(token: string): Promise<AuthResponse> {
+        const user = await prisma.user.findFirst({
+            where: {
+                resetToken: token,
+                resetTokenExpiry: { gt: new Date() }
+            },
+            include: { tenant: true }
+        });
+
+        if (!user) {
+            throw new Error('Link inválido ou expirado. Faça login normalmente.');
+        }
+
+        // Limpa o token após uso (segurança — one-time use)
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { resetToken: null, resetTokenExpiry: null }
+        });
+
+        const jwtToken = this.generateToken(user);
+
+        return {
+            token: jwtToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                tenant: {
+                    id: user.tenant.id,
+                    name: user.tenant.name,
+                    slug: user.tenant.slug
+                }
+            }
+        };
+    }
 }

@@ -107,11 +107,12 @@ export class EmailService {
         }
     }
 
-    async sendIncidentNotification(incident: any, riskManagerEmail: string) {
+    async sendIncidentNotification(incident: any, riskManagerEmail: string, tratativaUrl?: string) {
         const currentDate = new Date();
         const deadlineDate = new Date(currentDate);
         deadlineDate.setDate(deadlineDate.getDate() + 5);
         const deadlineString = deadlineDate.toLocaleDateString('pt-BR');
+        const actionUrl = tratativaUrl || `${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}`;
 
         const html = `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; background-color: #ffffff;">
@@ -167,7 +168,7 @@ export class EmailService {
 
                     <!-- Button -->
                     <div style="text-align: center; margin-bottom: 50px;">
-                        <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}" style="background-color: #003366; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: 700; font-size: 14px; text-transform: uppercase; display: inline-block;">RESPONDER PLANO DE AÇÃO</a>
+                        <a href="${actionUrl}" style="background-color: #003366; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: 700; font-size: 14px; text-transform: uppercase; display: inline-block;">RESPONDER PLANO DE AÇÃO</a>
                     </div>
 
                     <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 30px;">
@@ -206,7 +207,8 @@ export class EmailService {
         return age;
     }
 
-    async sendActionRequest(incident: any, sectorManagerEmail: string) {
+    async sendActionRequest(incident: any, sectorManagerEmail: string, tratativaUrl?: string) {
+        const actionUrl = tratativaUrl || `${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}`;
         const html = `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; background-color: #ffffff;">
                 <!-- Header -->
@@ -241,7 +243,7 @@ export class EmailService {
 
                     <!-- Button -->
                     <div style="text-align: center; margin-bottom: 35px;">
-                        <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}" 
+                        <a href="${actionUrl}" 
                            style="background-color: #003366; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; text-transform: uppercase; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                            ELABORAR PLANO DE AÇÃO AGORA
                         </a>
@@ -272,7 +274,12 @@ export class EmailService {
         }
     }
 
-    async sendHighManagementReport(incident: any, highManagementEmails: string[]) {
+    async sendHighManagementReport(incident: any, highManagementEmails: string[], tratativaUrl?: string) {
+        const baseUrl = process.env.APP_URL || 'https://sentinelaai.com.br';
+        const approveUrl = tratativaUrl
+            ? `${tratativaUrl}${tratativaUrl.includes('?') ? '&' : '?'}action=approve_deadline`
+            : `${baseUrl}/tratativa/${incident.id}?action=approve_deadline`;
+        const reviewUrl = tratativaUrl || `${baseUrl}/tratativa/${incident.id}`;
         const html = `
             <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; padding: 20px;">
                 <!-- Header -->
@@ -324,12 +331,12 @@ export class EmailService {
                         </p>
                         
                         <div style="margin-bottom: 15px;">
-                            <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}?action=approve_deadline" 
+                            <a href="${approveUrl}" 
                                style="background-color: #2e7d32; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3); font-size: 14px; text-transform: uppercase; margin-right: 10px; margin-bottom: 10px;">
                                 🗓️ DILATAR PRAZO (AUTONOMIA)
                             </a>
 
-                            <a href="${process.env.APP_URL || 'https://sentinelaai.com.br'}/tratativa/${incident.id}" 
+                            <a href="${reviewUrl}" 
                                style="background-color: #1565c0; color: white; padding: 14px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3); font-size: 14px; text-transform: uppercase;">
                                 🔍 REVISAR TRATATIVA
                             </a>

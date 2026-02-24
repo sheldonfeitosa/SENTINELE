@@ -244,6 +244,11 @@ class ApiService {
         const response = await axios.post(`${API_BASE}/auth/reset-password`, { email });
         return response.data;
     }
+
+    async magicLogin(token: string): Promise<{ token: string; user: any }> {
+        const response = await axios.get(`${API_BASE}/auth/magic-login`, { params: { token } });
+        return response.data;
+    }
 }
 
 export interface RiskManager {

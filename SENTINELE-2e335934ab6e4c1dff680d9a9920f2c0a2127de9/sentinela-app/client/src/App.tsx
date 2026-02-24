@@ -14,6 +14,7 @@ import LoginPage from './pages/LoginPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import HomePage from './pages/HomePage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { MagicLoginPage } from './pages/MagicLoginPage';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -64,6 +65,8 @@ function App() {
            */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          {/* Acesso via link mágico do email — sem login manual */}
+          <Route path="/acesso" element={<MagicLoginPage />} />
 
           {/*
            * ═══════════════════════════════════════════════════════

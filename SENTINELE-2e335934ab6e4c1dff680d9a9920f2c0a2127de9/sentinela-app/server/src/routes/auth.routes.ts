@@ -94,4 +94,60 @@ router.post('/update-password-with-token', async (req, res) => {
     }
 });
 
+// Magic Link: autentica gestor via link do email sem precisar de senha
+router.get('/magic-login', async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({ error: 'Token é obrigatório' });
+        }
+        const result = await authService.loginWithMagicToken(token);
+        res.json(result);
+    } catch (error: any) {
+        res.status(401).json({ error: error.message });
+    }
+});
+
+// Emergency password reset — protegido por ADMIN_SECRET env var
+// Uso: POST /auth/emergency-reset  { adminKey, email, newPassword }
+router.post('/emergency-reset', async (req, res) => {
+    try {
+        const { adminKey, email, newPassword } = req.body;
+
+        const ADMIN_SECRET = process.env.ADMIN_SECRET;
+        if (!ADMIN_SECRET) {
+            return res.status(503).json({ error: 'Serviço não configurado.' });
+        }
+        if (adminKey !== ADMIN_SECRET) {
+            return res.status(403).json({ error: 'Chave inválida.' });
+        }
+        if (!email || !newPassword) {
+            return res.status(400).json({ error: 'email e newPassword são obrigatórios.' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'Senha deve ter pelo menos 6 caracteres.' });
+        }
+
+        const bcrypt = await import('bcryptjs');
+        const { prisma } = await import('../lib/prisma');
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(404).json({ error: `Usuário '${email}' não encontrado.` });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { email },
+            data: { password: hashedPassword, resetToken: null, resetTokenExpiry: null }
+        });
+
+        console.log(`[EMERGENCY-RESET] Senha de ${email} resetada com sucesso.`);
+        res.json({ message: `Senha de ${email} atualizada com sucesso.` });
+    } catch (error: any) {
+        console.error('[EMERGENCY-RESET] Erro:', error.message);
+        res.status(500).json({ error: 'Erro interno ao resetar senha.' });
+    }
+});
+
 export const authRoutes = router;
