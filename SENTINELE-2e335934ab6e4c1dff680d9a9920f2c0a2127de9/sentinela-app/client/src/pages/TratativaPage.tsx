@@ -869,14 +869,14 @@ export function TratativaPage() {
                                         }
                                         // Check if deadline is being modified after being set
                                         let originalDeadline = '';
-                                        if (notification.actionPlanDeadline.includes('/')) {
+                                        if (notification.actionPlanDeadline?.includes('/')) {
                                             const [day, month, year] = notification.actionPlanDeadline.split('/');
                                             originalDeadline = `${year}-${month}-${day}`;
-                                        } else {
+                                        } else if (notification.actionPlanDeadline) {
                                             originalDeadline = notification.actionPlanDeadline.split('T')[0];
                                         }
 
-                                        if (actionPlanDeadline !== originalDeadline) {
+                                        if (originalDeadline && actionPlanDeadline && actionPlanDeadline !== originalDeadline) {
                                             setIsDeadlineRestriction(true);
                                             setShowDeadlineModal(true);
                                             return;
