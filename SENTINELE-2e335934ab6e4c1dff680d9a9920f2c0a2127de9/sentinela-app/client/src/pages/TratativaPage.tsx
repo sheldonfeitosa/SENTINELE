@@ -257,7 +257,7 @@ export function TratativaPage() {
                         <span style="font-size: 0.875rem;">${ishikawa.meio_ambiente || ishikawa.environment || '-'}</span>
                     </div>
                     <div style="background: #f8fafc; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px;">
-                        <strong style="color: #2563eb; display: block; font-size: 0.75rem; text-transform: uppercase;">MEDIDA</strong>
+                        <strong style="color: #2563eb; display: block; font-size: 0.75rem; text-transform: uppercase;">MEDIDA (INDICADORES)</strong>
                         <span style="font-size: 0.875rem;">${ishikawa.medida || ishikawa.measure || '-'}</span>
                     </div>
                 </div>
@@ -385,7 +385,8 @@ export function TratativaPage() {
 
                 const ishikawaData: any[][] = [];
                 items.forEach(item => {
-                    const title = item.querySelector('strong')?.textContent || '';
+                    let title = item.querySelector('strong')?.textContent || '';
+                    if (title === 'MEDIDA') title = 'MEDIDA (INDICADORES)';
                     const content = item.querySelector('span')?.textContent || '';
                     ishikawaData.push([title, content]);
                 });
@@ -831,6 +832,31 @@ export function TratativaPage() {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        {/* Número Notivisa Input */}
+                        <div className="p-4 border border-gray-100 rounded-xl bg-gray-50">
+                            <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-[#003366]" />
+                                Número Notivisa
+                            </label>
+                            <input
+                                type="text"
+                                value={notification?.notivisaNumber || ''}
+                                onChange={async (e) => {
+                                    const val = e.target.value;
+                                    setNotification((prev: any) => ({ ...prev, notivisaNumber: val }));
+                                    if (id) {
+                                        try {
+                                            await apiService.updateNotification(Number(id), { notivisaNumber: val });
+                                        } catch (err) {
+                                            console.error('Error updating Notivisa Number:', err);
+                                        }
+                                    }
+                                }}
+                                placeholder="Digite o número Notivisa (se houver)"
+                                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-[#003366] outline-none shadow-sm font-bold text-lg text-[#003366] transition-all bg-white"
+                            />
                         </div>
 
                         <div className="flex justify-end pt-6 gap-4">

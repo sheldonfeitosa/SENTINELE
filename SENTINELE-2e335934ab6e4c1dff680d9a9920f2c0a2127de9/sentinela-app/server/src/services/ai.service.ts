@@ -75,15 +75,24 @@ export class AIService {
 TIPO: "${eventType}"
             INVESTIGAÇÃO PRELIMINAR: ${formattedInvestigation || 'N/A'}
 
-            Estrutura JSON(chaves em português):
-{
-    "rootCauseConclusion": "...",
-        "suggestedDeadline": "dd/mm/yyyy",
-            "ishikawa": { "metodo": "...", "material": "...", "mao_de_obra": "...", "meio_ambiente": "...", "medida": "...", "maquina": "..." },
-    "fiveWhys": { "why1": "...", "why2": "...", "why3": "...", "why4": "...", "why5": "...", "rootCause": "..." },
-    "actionPlan": [{ "what": "...", "why": "...", "who": "...", "where": "...", "when": "...", "how": "...", "howMuch": "..." }]
-}
-`;
+            Estrutura JSON (chaves em português):
+            {
+                "rootCauseConclusion": "Conclusão detalhada",
+                "suggestedDeadline": "dd/mm/yyyy",
+                "ishikawa": { 
+                    "metodo": "Fatores relacionados a processos e procedimentos", 
+                    "material": "Fatores relacionados a insumos e recursos físicos", 
+                    "mao_de_obra": "Fatores relacionados a pessoas e treinamento", 
+                    "meio_ambiente": "Fatores relacionados ao local e ambiente", 
+                    "medida": "Fatores relacionados a INDICADORES, métricas, falhas em medições ou falta de dados (NÃO incluir decisões ou ações aqui)", 
+                    "maquina": "Fatores relacionados a equipamentos e tecnologia" 
+                },
+                "fiveWhys": { "why1": "...", "why2": "...", "why3": "...", "why4": "...", "why5": "...", "rootCause": "..." },
+                "actionPlan": [{ "what": "...", "why": "...", "who": "...", "where": "...", "when": "...", "how": "...", "howMuch": "..." }]
+            }
+
+            IMPORTANTE: No diagrama de Ishikawa, a categoria 'Medida' deve se referir estritamente a indicadores, métricas, falhas em monitoramento ou falta de dados. Jamais utilize 'Medida' para descrever tomadas de decisão ou planos de ação.
+        `;
 
         try {
             const text = await this.callWithRetry(prompt);
@@ -103,7 +112,7 @@ TIPO: "${eventType}"
 
             Estrutura JSON esperada:
             {
-              "eventType": "Tipo do evento",
+              "eventType": "Tipo do evento (Ex: QUEDA, ERRO DE MEDICAÇÃO, EVASÃO DE PACIENTE, HETEROAGRESSÃO)",
               "riskLevel": "LEVE, MODERADO ou GRAVE",
               "recommendation": "Sua recomendação"
             }
