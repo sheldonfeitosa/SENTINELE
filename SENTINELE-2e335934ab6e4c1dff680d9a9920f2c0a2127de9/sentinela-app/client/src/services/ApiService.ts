@@ -123,7 +123,8 @@ class ApiService {
             actionPlanStatus: item.actionPlanStatus || 'NOT_STARTED',
             actionPlanStartDate: item.actionPlanStartDate ? new Date(item.actionPlanStartDate).toLocaleDateString('pt-BR') : undefined,
             actionPlanDeadline: item.actionPlanDeadline ? new Date(item.actionPlanDeadline).toLocaleDateString('pt-BR') : undefined,
-            investigationList: item.investigationList
+            investigationList: item.investigationList,
+            notivisaNumber: item.notivisaNumber
         };
     }
 
@@ -240,6 +241,11 @@ class ApiService {
         await axios.delete(`${API_BASE}/admin/users/${userId}`);
     }
 
+    async adminImpersonateUser(userId: number): Promise<{ token: string; user: any }> {
+        const response = await axios.post(`${API_BASE}/admin/impersonate`, { userId });
+        return response.data;
+    }
+
     async resetPassword(email: string): Promise<any> {
         const response = await axios.post(`${API_BASE}/auth/reset-password`, { email });
         return response.data;
@@ -247,6 +253,11 @@ class ApiService {
 
     async magicLogin(token: string): Promise<{ token: string; user: any }> {
         const response = await axios.get(`${API_BASE}/auth/magic-login`, { params: { token } });
+        return response.data;
+    }
+
+    async publicTokenLogin(publicToken: string): Promise<{ token: string; user: any }> {
+        const response = await axios.get(`${API_BASE}/auth/public-token`, { params: { token: publicToken } });
         return response.data;
     }
 }

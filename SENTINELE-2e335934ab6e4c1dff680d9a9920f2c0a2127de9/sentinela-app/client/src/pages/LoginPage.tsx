@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiService, API_BASE } from '../services/ApiService'; // Import API_BASE
 import axios from 'axios';
 import {
@@ -42,6 +42,7 @@ const LoginPage: React.FC = () => {
 
 
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,7 +60,11 @@ const LoginPage: React.FC = () => {
 
             console.log('[Login] User Role:', response.data.user.role);
 
-            if (response.data.user.role === 'SUPER_ADMIN') {
+            // Se há um redirect na URL (ex: vindo de email de tratativa), vai direto para lá
+            const redirectTo = searchParams.get('redirect');
+            if (redirectTo) {
+                navigate(redirectTo);
+            } else if (response.data.user.role === 'SUPER_ADMIN') {
                 navigate('/admin');
             } else {
                 navigate('/gestao-risco');

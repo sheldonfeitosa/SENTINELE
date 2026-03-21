@@ -5,6 +5,9 @@ import { AuthService } from './auth.service';
 import { RiskManagerRepository } from '../repositories/risk-manager.repository';
 import sanitizeHtml from 'sanitize-html';
 import { prisma } from '../lib/prisma';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = (process.env.JWT_SECRET || 'sentinela-secret-key-change-me').replace(/[\r\n]/g, '').trim();
 
 export class NotificationService {
     private repository: NotificationRepository;
@@ -21,19 +24,47 @@ export class NotificationService {
         this.authService = new AuthService();
     }
 
-    /** Gera a URL de acesso mágico para um email de gestor. */
+    /** Gera a URL de acesso mágico para um email de gestor.
+     *  - Se o email tem User no sistema: usa magic token normal (resetToken)
+     *  - Se não tem User: gera token público JWT com tenantId da notificação (sem precisar de conta)
+     */
     private async buildMagicUrl(email: string, notificationId: number, suffix = ''): Promise<string> {
         const base = process.env.APP_URL || 'https://sentinelaai.com.br';
+        const redirect = encodeURIComponent(`/tratativa/${notificationId}${suffix}`);
+
+        // 1ª tentativa: magic token para usuários COM conta no sistema
         try {
             const token = await this.authService.generateMagicToken(email);
             if (token) {
-                const redirect = encodeURIComponent(`/tratativa/${notificationId}${suffix}`);
                 return `${base}/acesso?token=${token}&redirect=${redirect}`;
             }
         } catch (e) {
-            console.warn(`[MagicLink] Could not generate token for ${email}:`, e);
+            console.warn(`[MagicLink] Could not generate user token for ${email}:`, e);
         }
-        return `${base}/tratativa/${notificationId}${suffix}`;
+
+        // 2ª tentativa: token público — SEM conta no sistema.
+        // Usa o tenantId da notificação para criar sessão temporária de gestor.
+        try {
+            const notification = await this.repository.findById(notificationId);
+            if (notification?.tenantId) {
+                const publicToken = jwt.sign(
+                    {
+                        type: 'public_notification_access',
+                        tenantId: notification.tenantId,
+                        notificationId,
+                        email
+                    },
+                    JWT_SECRET,
+                    { expiresIn: '7d' }
+                );
+                return `${base}/acesso?public_token=${publicToken}&redirect=${redirect}`;
+            }
+        } catch (e) {
+            console.warn(`[PublicToken] Could not generate public token for notification ${notificationId}:`, e);
+        }
+
+        // Fallback final: login com redirect
+        return `${base}/login?redirect=${redirect}`;
     }
 
     async createNotification(data: any, authTenantId?: string) {
@@ -98,7 +129,8 @@ export class NotificationService {
             actionPlanStatus: 'NOT_STARTED',
             actionPlanStartDate: null,
             actionPlanDeadline: null,
-            investigationList: null
+            investigationList: null,
+            notivisaNumber: data.notivisa_numero || data.notivisaNumber || null
         };
 
         const createdNotification = await this.repository.create(tenantId, incidentData);
@@ -136,7 +168,7 @@ export class NotificationService {
         return this.repository.findAll(tenantId);
     }
 
-    async getNotificationById(id: number, tenantId: string) {
+    async getNotificationById(id: number, tenantId?: string) {
         return this.repository.findById(id, tenantId);
     }
 
@@ -187,6 +219,7 @@ export class NotificationService {
         if (data.actionPlanStatus) updateData.actionPlanStatus = data.actionPlanStatus;
         if (data.actionPlanDeadline) updateData.actionPlanDeadline = data.actionPlanDeadline;
         if (data.investigationList) updateData.investigationList = data.investigationList;
+        if (data.notivisaNumber || data.notivisa_numero) updateData.notivisaNumber = data.notivisaNumber || data.notivisa_numero;
 
         return this.repository.update(id, tenantId, updateData);
     }

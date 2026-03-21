@@ -108,6 +108,21 @@ router.get('/magic-login', async (req, res) => {
     }
 });
 
+// Acesso Público: autentica gestor de setor SEM conta no sistema usando token JWT público
+// Gerado pelo buildMagicUrl quando o email não tem User cadastrado
+router.get('/public-token', async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({ error: 'Token público é obrigatório' });
+        }
+        const result = await authService.loginWithPublicToken(token);
+        res.json(result);
+    } catch (error: any) {
+        res.status(401).json({ error: error.message });
+    }
+});
+
 // Emergency password reset — protegido por ADMIN_SECRET env var
 // Uso: POST /auth/emergency-reset  { adminKey, email, newPassword }
 router.post('/emergency-reset', async (req, res) => {

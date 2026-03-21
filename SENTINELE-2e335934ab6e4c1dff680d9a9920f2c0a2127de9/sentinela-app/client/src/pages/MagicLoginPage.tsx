@@ -11,9 +11,10 @@ export function MagicLoginPage() {
 
     useEffect(() => {
         const token = searchParams.get('token');
+        const publicToken = searchParams.get('public_token');
         const redirect = searchParams.get('redirect') || '/dashboard';
 
-        if (!token) {
+        if (!token && !publicToken) {
             setErrorMsg('Link inválido. Nenhum token encontrado.');
             setStatus('error');
             return;
@@ -21,7 +22,14 @@ export function MagicLoginPage() {
 
         (async () => {
             try {
-                const result = await apiService.magicLogin(token);
+                let result;
+                if (token) {
+                    // Gestor COM conta no sistema: usa magic login normal
+                    result = await apiService.magicLogin(token);
+                } else {
+                    // Gestor SEM conta no sistema: usa token público de notificação
+                    result = await apiService.publicTokenLogin(publicToken!);
+                }
                 // Salva sessão igual ao login normal
                 localStorage.setItem('token', result.token);
                 localStorage.setItem('user', JSON.stringify(result.user));
@@ -61,7 +69,7 @@ export function MagicLoginPage() {
                         </div>
                         <p className="text-sm text-red-600 font-medium mb-2">{errorMsg}</p>
                         <p className="text-xs text-gray-400 mb-6">
-                            O link pode ter expirado ou já foi utilizado. Links de acesso são válidos por 7 dias e de uso único.
+                            O link pode ter expirado ou já foi utilizado. Links de acesso são válidos por 7 dias.
                         </p>
                         <button
                             onClick={() => navigate('/login', { replace: true })}

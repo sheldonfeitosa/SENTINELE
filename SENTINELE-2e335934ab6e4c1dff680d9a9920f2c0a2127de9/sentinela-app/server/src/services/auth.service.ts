@@ -281,6 +281,64 @@ export class AuthService {
      * Autentica o gestor usando um token mágico de email.
      * Retorna um JWT completo + dados do usuário.
      */
+    /**
+     * Autentica gestor de setor usando token público JWT.
+     * Usado quando o gestor NÃO tem conta no sistema — o email é suficiente.
+     * O token contém: { type, tenantId, notificationId, email }
+     */
+    async loginWithPublicToken(publicToken: string): Promise<AuthResponse> {
+        let payload: any;
+        try {
+            payload = jwt.verify(publicToken, JWT_SECRET) as any;
+        } catch (err) {
+            throw new Error('Link expirado ou inválido. Solicite um novo email de notificação.');
+        }
+
+        if (payload.type !== 'public_notification_access') {
+            throw new Error('Tipo de token inválido.');
+        }
+
+        const { tenantId, email, notificationId } = payload;
+
+        if (!tenantId) {
+            throw new Error('Token inválido: tenant não identificado.');
+        }
+
+        // Busca o tenant para montar a resposta
+        const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+        if (!tenant) {
+            throw new Error('Instituição não encontrada.');
+        }
+
+        // Gera um JWT de sessão temporária para o gestor de setor
+        // Usa userId=0 pois não tem conta; o tenantId é o que importa para o acesso
+        const sessionToken = jwt.sign(
+            {
+                userId: 0,
+                email: email || 'gestor@setor.ext',
+                role: 'GESTOR_SETOR',
+                tenantId
+            },
+            JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
+        return {
+            token: sessionToken,
+            user: {
+                id: 0,
+                email: email || 'gestor@setor.ext',
+                name: 'Gestor de Setor',
+                role: 'GESTOR_SETOR',
+                tenant: {
+                    id: tenant.id,
+                    name: tenant.name,
+                    slug: tenant.slug
+                }
+            }
+        };
+    }
+
     async loginWithMagicToken(token: string): Promise<AuthResponse> {
         const user = await prisma.user.findFirst({
             where: {
@@ -294,11 +352,33 @@ export class AuthService {
             throw new Error('Link inválido ou expirado. Faça login normalmente.');
         }
 
-        // Limpa o token após uso (segurança — one-time use)
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { resetToken: null, resetTokenExpiry: null }
+        const jwtToken = this.generateToken(user);
+
+        return {
+            token: jwtToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                tenant: {
+                    id: user.tenant.id,
+                    name: user.tenant.name,
+                    slug: user.tenant.slug
+                }
+            }
+        };
+    }
+
+    async impersonateUser(targetUserId: number): Promise<AuthResponse> {
+        const user = await prisma.user.findUnique({
+            where: { id: targetUserId },
+            include: { tenant: true }
         });
+
+        if (!user) {
+            throw new Error('Usuário não encontrado.');
+        }
 
         const jwtToken = this.generateToken(user);
 

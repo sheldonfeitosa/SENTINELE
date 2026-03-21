@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { NotificationService } from '../services/notification.service';
+import { sanitize } from '../lib/sanitizer';
 
 export class NotificationController {
     private service: NotificationService;
@@ -10,7 +11,7 @@ export class NotificationController {
 
     create = async (req: Request, res: Response) => {
         try {
-            const data = req.body;
+            const data = sanitize(req.body);
             const authTenantId = (req as any).user?.tenantId;
             const incident = await this.service.createNotification(data, authTenantId);
             res.status(201).json(incident);
@@ -34,7 +35,9 @@ export class NotificationController {
     getById = async (req: Request, res: Response) => {
         try {
             const id = parseInt(req.params.id);
-            const tenantId = (req as any).user.tenantId;
+            const user = (req as any).user;
+            // SUPER_ADMIN pode acessar notificações de qualquer tenant
+            const tenantId = user.role === 'SUPER_ADMIN' ? undefined : user.tenantId;
             const notification = await this.service.getNotificationById(id, tenantId);
 
             if (!notification) {
@@ -53,7 +56,7 @@ export class NotificationController {
         try {
             const id = parseInt(req.params.id);
             const tenantId = (req as any).user.tenantId;
-            const data = req.body;
+            const data = sanitize(req.body);
             const incident = await this.service.updateNotification(id, tenantId, data);
             res.json(incident);
         } catch (error: any) {
