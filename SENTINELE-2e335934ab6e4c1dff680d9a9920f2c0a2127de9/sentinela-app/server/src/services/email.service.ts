@@ -193,10 +193,7 @@ export class EmailService {
                                 <span style="background-color: #ffebee; color: #d32f2f; padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 14px;">${deadlineString}</span>
                             </td>
                         </tr>
-                        <tr>
-                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 700; color: #555;">Setor Ocorrência:</td>
-                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${incident.sector || '-'}</td>
-                        </tr>
+
                     </table>
 
                     <!-- Description Box -->
@@ -275,7 +272,7 @@ export class EmailService {
                         <p style="margin: 0; font-size: 14px; color: #e65100; font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">⚠️ DETALHES DA PENDÊNCIA:</p>
                         <p style="margin: 5px 0; font-size: 14px;"><strong>ID:</strong> #${incident.id}</p>
                         <p style="margin: 5px 0; font-size: 14px;"><strong>Evento:</strong> ${incident.description}</p>
-                        <p style="margin: 5px 0; font-size: 14px;"><strong>Setor Ocorrência:</strong> ${incident.sector}</p>
+
                     </div>
 
                     <p style="font-size: 15px; line-height: 1.6; margin-bottom: 20px; text-align: justify;">
