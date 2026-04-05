@@ -1,0 +1,10 @@
+{
+  "folders": [
+    {
+      "path": "SENTINELE-2e335934ab6e4c1dff680d9a9920f2c0a2127de9"
+    }
+  ],
+  "settings": {
+    "window.title": "SENTINELA AI - ${activeEditorShort}${separator}${appName}"
+  }
+}

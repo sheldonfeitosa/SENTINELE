@@ -1,0 +1,36 @@
+[
+  {
+    "record": "DKIM",
+    "name": "resend._domainkey",
+    "value": "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCjifQz0G/K86dILaxmvv4WbWAkbyAvk4xm6auvtqiisnIrfmoJ2Gk5GMMQb7Q5Pb6lBw5q+deeF04FZmvPBX7Jd1Ob85p+UsV6W3tuqfAug9xlsX0jpnK30uXduO1QYOKuWaPZwAZRk8ByiHeAGnjNsIXY8RLCNgBUm6yxjiXFYwIDAQAB",
+    "type": "TXT",
+    "status": "failed",
+    "ttl": "Auto"
+  },
+  {
+    "record": "SPF",
+    "name": "send",
+    "type": "MX",
+    "ttl": "Auto",
+    "status": "failed",
+    "value": "feedback-smtp.sa-east-1.amazonses.com",
+    "priority": 10
+  },
+  {
+    "record": "SPF",
+    "name": "send",
+    "value": "v=spf1 include:amazonses.com ~all",
+    "type": "TXT",
+    "ttl": "Auto",
+    "status": "failed"
+  },
+  {
+    "record": "Receiving",
+    "name": "",
+    "value": "inbound-smtp.sa-east-1.amazonaws.com",
+    "type": "MX",
+    "priority": 10,
+    "status": "verified",
+    "ttl": "Auto"
+  }
+]

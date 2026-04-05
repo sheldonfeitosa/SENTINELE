@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { SectorService } from '../services/sector.service';
 import { prisma } from '../lib/prisma';
+import { sanitize } from '../lib/sanitizer';
 
 export class SectorController {
     private service: SectorService;
@@ -34,7 +35,7 @@ export class SectorController {
 
     create = async (req: Request, res: Response) => {
         try {
-            const { name } = req.body;
+            const { name } = sanitize(req.body);
             const tenantId = (req as any).user.tenantId;
             const sector = await this.service.createSector(tenantId, name);
             res.status(201).json(sector);

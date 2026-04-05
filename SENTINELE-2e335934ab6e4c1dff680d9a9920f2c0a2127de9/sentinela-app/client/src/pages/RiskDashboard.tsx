@@ -98,7 +98,7 @@ export function RiskDashboard() {
     });
 
     const handleDownload = () => {
-        const headers = ['ID', 'Data Criação', 'Paciente', 'Mãe', 'Nascimento', 'Sexo', 'Setor', 'Setor Notificado', 'Tipo Notificação', 'Data Evento', 'Período', 'Idade', 'Internação', 'Tipo Evento (IA)', 'Classificação', 'Prazo', 'Status'];
+        const headers = ['ID', 'Data Criação', 'Paciente', 'Mãe', 'Nascimento', 'Sexo', 'Setor', 'Setor Notificado', 'Tipo Notificação', 'Data Evento', 'Período', 'Idade', 'Internação', 'Tipo Evento (IA)', 'Classificação', 'Prazo', 'Número Notivisa', 'Status'];
         const csvContent = [
             headers.join(','),
             ...filteredNotifications.map(n => [
@@ -118,6 +118,7 @@ export function RiskDashboard() {
                 n.tipo_evento || '',
                 n.classificacao,
                 n.prazo,
+                n.notivisaNumber || '',
                 n.status
             ].join(','))
         ].join('\n');
@@ -702,6 +703,7 @@ export function RiskDashboard() {
                                     <th className="px-4 py-3 font-bold text-[#003366]">Tipo de Evento e Não Conformidade</th>
                                     <th className="px-4 py-3 font-bold text-[#003366]">Classificação</th>
                                     <th className="px-4 py-3 font-bold text-[#003366]">Prazo Tratativa</th>
+                                    <th className="px-4 py-3 font-bold text-[#003366]">Nº Notivisa</th>
                                     <th className="px-4 py-3 font-bold text-[#003366] text-right">Ações</th>
                                 </tr>
                             </thead>
@@ -711,10 +713,10 @@ export function RiskDashboard() {
                                         key={n.id}
                                         onClick={() => handleRowClick(n.id)}
                                         className={`transition-colors group cursor-pointer ${newNotifIds.has(n.id)
-                                                ? '!bg-green-50 border-l-4 border-l-green-500 animate-pulse'
-                                                : highlightedId === n.id
-                                                    ? '!bg-blue-100 border-l-4 border-l-[#003366]'
-                                                    : 'hover:bg-blue-50/50 border-l-4 border-l-transparent'
+                                            ? '!bg-green-50 border-l-4 border-l-green-500 animate-pulse'
+                                            : highlightedId === n.id
+                                                ? '!bg-blue-100 border-l-4 border-l-[#003366]'
+                                                : 'hover:bg-blue-50/50 border-l-4 border-l-transparent'
                                             }`}
                                     >
                                         <td className={`px-4 py-3 font-medium text-[#003366] sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${highlightedId === n.id ? '!bg-blue-100' : 'bg-white group-hover:bg-blue-50/50'}`}>
@@ -777,6 +779,15 @@ export function RiskDashboard() {
                                         </td>
                                         <td className="px-4 py-3 text-gray-500 font-mono text-xs">
                                             {n.prazo}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="text"
+                                                value={n.notivisaNumber || ''}
+                                                onChange={(e) => handleUpdate(n.id, 'notivisaNumber', e.target.value)}
+                                                placeholder="Nº Notivisa"
+                                                className="w-24 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                            />
                                         </td>
                                         <td className="px-4 py-3 text-right flex justify-end gap-2">
                                             <button

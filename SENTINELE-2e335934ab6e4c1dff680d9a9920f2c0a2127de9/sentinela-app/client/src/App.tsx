@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { NotificationForm } from './pages/NotificationForm';
 import { RiskDashboard } from './pages/RiskDashboard';
@@ -24,13 +24,14 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 const ProtectedRoute = ({ children, requireSaaS = false }: { children: React.ReactNode, requireSaaS?: boolean }) => {
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const location = useLocation();
 
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // Isolamento: Super Admin só acessa /admin
-  if (user.role === 'SUPER_ADMIN' && !requireSaaS) {
+  // Isolamento: Super Admin só acessa /admin, exceto se for para ver uma tratativa/plano de ação
+  if (user.role === 'SUPER_ADMIN' && !requireSaaS && !location.pathname.includes('/tratativa')) {
     return <Navigate to="/admin" replace />;
   }
 

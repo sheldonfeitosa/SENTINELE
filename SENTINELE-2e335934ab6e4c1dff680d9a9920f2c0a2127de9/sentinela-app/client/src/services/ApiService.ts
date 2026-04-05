@@ -2,8 +2,8 @@ import axios from 'axios';
 import type { Notification } from './MockDataService'; // Reuse interface for now
 
 const isProduction = import.meta.env.PROD;
-// In production, fallback to '/api' (relative) to use Vercel rewrites. In dev, use localhost.
-const API_BASE = import.meta.env.VITE_API_URL || (isProduction ? '/api' : 'http://localhost:3001/api');
+// Ensure absolute URL in production so external apps can connect without CORS issues
+const API_BASE = isProduction ? 'https://sentinelaai.com.br/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 const API_URL = `${API_BASE}/notifications`;
 
 // Add Auth Interceptor

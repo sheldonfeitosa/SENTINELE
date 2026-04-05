@@ -17,5 +17,6 @@ router.put('/update-subscription', controller.updateSubscription);
 router.post('/send-sales-email', controller.sendSalesEmail);
 router.post('/users', controller.createUser);
 router.delete('/users/:id', controller.deleteUser);
+router.post('/impersonate', controller.impersonateUser);
 
 export default router;

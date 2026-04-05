@@ -61,7 +61,7 @@ const LoginPage: React.FC = () => {
             console.log('[Login] User Role:', response.data.user.role);
 
             // Se há um redirect na URL (ex: vindo de email de tratativa), vai direto para lá
-            const redirectTo = searchParams.get('redirect');
+            const redirectTo = searchParams.get('redirect') || searchParams.get('amp;redirect');
             if (redirectTo) {
                 navigate(redirectTo);
             } else if (response.data.user.role === 'SUPER_ADMIN') {

@@ -55,14 +55,37 @@ export function useSpeechRecognition() {
             };
 
             recognition.onresult = (event: any) => {
-                let sessionTranscript = '';
-                for (let i = 0; i < event.results.length; ++i) {
-                    sessionTranscript += event.results[i][0].transcript;
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
                 }
 
-                setTranscript(sessionTranscript);
+                // If we have new final content, we update the main transcript state
+                if (finalTranscript) {
+                    setTranscript(prev => prev + finalTranscript);
+                }
+
+                // The callback should receive the full stable transcript + current interim
                 if (onResultCallback) {
-                    onResultCallback(sessionTranscript);
+                    // We use a functional update or ref to get current stable transcript if needed,
+                    // but for simpler logic we can just pass the latest calculated total.
+                    // However, to avoid state lag in the callback, we calculate the full session text here:
+                    let fullSessionTranscript = '';
+                    for (let i = 0; i < event.results.length; ++i) {
+                        const script = event.results[i][0].transcript;
+                        // Some browsers don't provide spaces between results
+                        if (fullSessionTranscript && !fullSessionTranscript.endsWith(' ') && !script.startsWith(' ')) {
+                            fullSessionTranscript += ' ';
+                        }
+                        fullSessionTranscript += script;
+                    }
+                    onResultCallback(fullSessionTranscript.trim());
                 }
             };
 

@@ -31,8 +31,15 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
 };
 
 export const optionalAuthenticate = (req: Request, res: Response, next: NextFunction) => {
-    if (req.headers.authorization) {
-        return authenticate(req, res, next);
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET) as any;
+            (req as any).user = decoded;
+        } catch (err) {
+            // Se o token for inválido, apenas ignoramos para que a requisição siga de forma não autenticada (pública)
+        }
     }
     next();
 };

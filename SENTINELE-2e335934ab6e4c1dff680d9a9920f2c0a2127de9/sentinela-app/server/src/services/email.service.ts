@@ -16,6 +16,10 @@ export class EmailService {
 
     private async sendEmailWithFallback(params: { to: string | string[], subject: string, html: string }) {
         let lastError: any = null;
+        let isSandboxMode = process.env.NODE_ENV !== 'production' || true; // Force handling sandbox
+
+        // Se for array e vazio, abortar
+        if (Array.isArray(params.to) && params.to.length === 0) return { data: null, error: 'No recipients' };
 
         try {
             const { data, error } = await this.resend.emails.send({
@@ -37,8 +41,11 @@ export class EmailService {
             console.warn(`⚠️ Primary sender exception (${this.fromEmail}):`, err.message);
         }
 
-        // Fallback para onboarding@resend.dev se o primeiro falhar e não for ele mesmo
-        if (this.fromEmail !== 'onboarding@resend.dev') {
+        const errorMessage = lastError?.message || '';
+        const isDomainNotVerified = errorMessage.includes('domain is not verified') || errorMessage.includes('testing emails');
+
+        // 1st Fallback: try using onboarding@resend.dev but with original recipient (might fail if not verified)
+        if (this.fromEmail !== 'onboarding@resend.dev' && !isDomainNotVerified) {
             try {
                 console.log('🔄 Attempting fallback to onboarding@resend.dev...');
                 const { data, error } = await this.resend.emails.send({
@@ -52,15 +59,49 @@ export class EmailService {
                     console.log('✅ Email sent using fallback sender (onboarding@resend.dev)');
                     return { data, error };
                 }
-                console.error('❌ Fallback sender also failed:', error.message);
-                throw new Error(error.message);
+                lastError = error;
+                console.warn('❌ Fallback sender also failed:', error.message);
             } catch (fallbackErr: any) {
+                lastError = fallbackErr;
                 console.error('❌ Fallback exception:', fallbackErr.message);
-                throw fallbackErr;
             }
         }
 
-        throw new Error(lastError?.message || 'Failed to send email');
+        // 2nd (Final) Fallback: Sandbox Bypass (Send only to verified owner email)
+        // This stops the system from crashing during tests when emailing sector managers.
+        if (lastError?.message?.includes('testing emails') || lastError?.message?.includes('domain is not verified')) {
+            console.log('⚠️ Resend Sandbox Restricted: Rerouting email to verified owner account for testing...');
+            const ownerEmail = process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com';
+            
+            const sandboxWarningHtml = `
+            <div style="background-color: #ffebee; border-left: 5px solid #f44336; padding: 15px; margin-bottom: 20px; font-family: Arial, sans-serif;">
+                <p style="color: #c62828; margin: 0; font-size: 14px; font-weight: bold;">⚠️ MODO DE TESTE (SANDBOX BYPASS)</p>
+                <p style="color: #b71c1c; margin: 5px 0 0 0; font-size: 13px;">
+                    Este e-mail tentou ser enviado para <strong>${params.to}</strong>, mas foi redirecionado para você porque o domínio de envio não foi verificado no Resend.
+                </p>
+            </div>
+            `;
+
+            try {
+                const { data, error } = await this.resend.emails.send({
+                    from: 'onboarding@resend.dev',
+                    to: ownerEmail,
+                    subject: `[TESTE - DEST: ${Array.isArray(params.to) ? params.to.join(',') : params.to}] ${params.subject}`,
+                    html: sandboxWarningHtml + params.html
+                });
+
+                if (!error) {
+                    console.log(`✅ [Sandbox Reroute] Email safely delivered to ${ownerEmail} instead of ${params.to}`);
+                    return { data, error };
+                }
+                throw new Error(error.message);
+            } catch (finalErr: any) {
+                console.error('❌ [Sandbox Reroute] Absolutely failed to route email:', finalErr.message);
+                throw finalErr;
+            }
+        }
+
+        throw new Error(lastError?.message || 'Failed to send email after fallback attempts');
     }
 
     async sendWelcomeEmail(email: string, name: string, password: string, loginUrl: string) {
@@ -152,6 +193,10 @@ export class EmailService {
                                 <span style="background-color: #ffebee; color: #d32f2f; padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 14px;">${deadlineString}</span>
                             </td>
                         </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 700; color: #555;">Setor Ocorrência:</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">${incident.sector || '-'}</td>
+                        </tr>
                     </table>
 
                     <!-- Description Box -->
@@ -230,6 +275,7 @@ export class EmailService {
                         <p style="margin: 0; font-size: 14px; color: #e65100; font-weight: bold; text-transform: uppercase; margin-bottom: 10px;">⚠️ DETALHES DA PENDÊNCIA:</p>
                         <p style="margin: 5px 0; font-size: 14px;"><strong>ID:</strong> #${incident.id}</p>
                         <p style="margin: 5px 0; font-size: 14px;"><strong>Evento:</strong> ${incident.description}</p>
+                        <p style="margin: 5px 0; font-size: 14px;"><strong>Setor Ocorrência:</strong> ${incident.sector}</p>
                     </div>
 
                     <p style="font-size: 15px; line-height: 1.6; margin-bottom: 20px; text-align: justify;">

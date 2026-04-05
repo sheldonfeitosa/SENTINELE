@@ -30,6 +30,7 @@ const HomePage = () => {
                             <a href="#features" className="text-gray-600 hover:text-indigo-600 transition-colors">Recursos</a>
                             <a href="#solutions" className="text-gray-600 hover:text-indigo-600 transition-colors">Soluções</a>
                             <a href="#pricing" className="text-gray-600 hover:text-indigo-600 transition-colors">Preços</a>
+                            <Link to="/admin" className="text-gray-600 hover:text-indigo-600 font-medium">SaaS Admin</Link>
                             <Link to="/login" className="text-gray-600 hover:text-indigo-600 font-medium">Login</Link>
                             <Link
                                 to="/login" // Or signup if implemented
@@ -52,6 +53,7 @@ const HomePage = () => {
                     <div className="md:hidden bg-white border-b border-gray-100 px-4 py-4 space-y-4">
                         <a href="#features" className="block text-gray-600 hover:text-indigo-600">Recursos</a>
                         <a href="#solutions" className="block text-gray-600 hover:text-indigo-600">Soluções</a>
+                        <Link to="/admin" className="block text-indigo-600 font-medium font-medium">SaaS Admin</Link>
                         <Link to="/login" className="block text-indigo-600 font-medium">Entrar</Link>
                     </div>
                 )}
@@ -195,6 +197,7 @@ const HomePage = () => {
                             <ul className="space-y-2">
                                 <li><a href="#" className="hover:text-white">Recursos</a></li>
                                 <li><a href="#" className="hover:text-white">Preços</a></li>
+                                <li><Link to="/admin" className="hover:text-white">SaaS Admin</Link></li>
                                 <li><a href="#" className="hover:text-white">API</a></li>
                             </ul>
                         </div>

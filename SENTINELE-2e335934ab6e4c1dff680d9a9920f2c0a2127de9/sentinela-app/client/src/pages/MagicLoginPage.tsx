@@ -10,9 +10,10 @@ export function MagicLoginPage() {
     const [errorMsg, setErrorMsg] = useState('');
 
     useEffect(() => {
-        const token = searchParams.get('token');
-        const publicToken = searchParams.get('public_token');
-        const redirect = searchParams.get('redirect') || '/dashboard';
+        const token = searchParams.get('token') || searchParams.get('amp;token');
+        const publicToken = searchParams.get('public_token') || searchParams.get('amp;public_token');
+        const rawRedirect = searchParams.get('redirect') || searchParams.get('amp;redirect') || searchParams.get('amp;amp;redirect');
+        const redirect = rawRedirect || '/dashboard';
 
         if (!token && !publicToken) {
             setErrorMsg('Link inválido. Nenhum token encontrado.');

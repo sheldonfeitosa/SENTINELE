@@ -12,8 +12,8 @@ export function Layout() {
     }
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.clear();
+        sessionStorage.clear();
         navigate('/login');
     };
 

@@ -25,6 +25,7 @@ export interface Notification {
     actionPlanStartDate?: string;
     actionPlanDeadline?: string;
     investigationList?: string;
+    notivisaNumber?: string;
 }
 
 class MockDataService {
@@ -44,7 +45,7 @@ class MockDataService {
             periodo: "TARDE",
             idade: 28,
             data_internacao: "10/10/2025",
-            tipo_evento: "FUGA PACIENTE",
+            tipo_evento: "EVASÃO DE PACIENTE",
             classificacao: "LEVE",
             prazo: "27/10/2025",
             status: "Aberto",
@@ -107,7 +108,7 @@ class MockDataService {
             periodo: "TARDE",
             idade: 30,
             data_internacao: "12/10/2025",
-            tipo_evento: "FUGA PACIENTE",
+            tipo_evento: "EVASÃO DE PACIENTE",
             classificacao: "MODERADO",
             prazo: "24/10/2025",
             status: "Concluído",

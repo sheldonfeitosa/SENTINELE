@@ -1,12 +1,15 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { AdminService } from '../services/admin.service';
+import { AuthService } from '../services/auth.service';
 
 export class AdminController {
     private service: AdminService;
+    private authService: AuthService;
 
     constructor() {
         this.service = new AdminService();
+        this.authService = new AuthService();
     }
 
     getTenants = async (req: AuthRequest, res: Response) => {
@@ -98,6 +101,19 @@ export class AdminController {
             res.json({ message: 'Usuário excluído com sucesso.' });
         } catch (error: any) {
             res.status(500).json({ error: 'Erro ao excluir usuário', details: error.message });
+        }
+    };
+
+    impersonateUser = async (req: AuthRequest, res: Response) => {
+        try {
+            const { userId } = req.body;
+            if (!userId) {
+                return res.status(400).json({ error: 'userId é obrigatório.' });
+            }
+            const data = await this.authService.impersonateUser(userId);
+            res.json(data);
+        } catch (error: any) {
+            res.status(500).json({ error: 'Erro ao entrar como usuário', details: error.message });
         }
     };
 }

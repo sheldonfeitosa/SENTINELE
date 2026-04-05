@@ -163,7 +163,7 @@ export function NotificationForm() {
                         <div className="bg-white p-4 rounded-lg shadow-sm hover:translate-x-1 transition-transform duration-300">
                             <h3 className="font-bold text-[#003366] text-sm mb-1">Segurança</h3>
                             <ul className="text-xs text-gray-600 space-y-1">
-                                <li>• Evasão/Fuga</li>
+                                <li>• Evasão de Paciente</li>
                                 <li>• Contrabando de itens</li>
                                 <li>• Quedas</li>
                             </ul>

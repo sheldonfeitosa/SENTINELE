@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../services/ApiService';
-import { Building2, Users, Search, Key, CreditCard, ChevronDown, ChevronUp, DollarSign, TrendingUp, Mail, UserPlus, Trash2, X } from 'lucide-react';
+import { Building2, Users, Search, Key, CreditCard, ChevronDown, ChevronUp, DollarSign, TrendingUp, Mail, UserPlus, Trash2, X, LogIn } from 'lucide-react';
 import { Toast, type ToastType } from '../components/ui/Toast';
 import React from 'react';
 
@@ -94,6 +94,18 @@ export function AdminDashboard() {
             setNewPassword('');
         } catch (error) {
             setToast({ message: 'Erro ao resetar senha.', type: 'error' });
+        }
+    };
+
+    const handleImpersonate = async (user: any) => {
+        if (!window.confirm(`Deseja realmente entrar como ${user.name}? Para voltar ao painel de administrador original, você precisará sair da conta corrente e fazer login novamente com sua senha de Super Admin.`)) return;
+        try {
+            const data = await apiService.adminImpersonateUser(user.id);
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            window.location.href = '/gestao-risco';
+        } catch (error) {
+            setToast({ message: 'Erro ao entrar como usuário.', type: 'error' });
         }
     };
 
@@ -291,6 +303,13 @@ export function AdminDashboard() {
                                                                         <p className="text-[10px] font-medium text-emerald-600">{u.role}</p>
                                                                     </div>
                                                                     <div className="flex gap-1">
+                                                                        <button
+                                                                            onClick={() => handleImpersonate(u)}
+                                                                            className="p-2 hover:bg-blue-50 text-blue-500 rounded-md transition-colors"
+                                                                            title="Entrar como Usuário (Impersonate)"
+                                                                        >
+                                                                            <LogIn className="w-4 h-4" />
+                                                                        </button>
                                                                         <button
                                                                             onClick={() => setResettingPasswordUser(u)}
                                                                             className="p-2 hover:bg-orange-50 text-orange-500 rounded-md transition-colors"

@@ -26,12 +26,34 @@ console.log('--- Initializing Sentinela AI Server ---');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(helmet());
+app.use(helmet({
+    frameguard: {
+        action: 'deny',
+    },
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https://api.sentinelaai.com.br", "http://localhost:3001"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: [],
+        },
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    }
+}));
 
 app.use(cors({
     origin: [
         'http://localhost:5173',
         'http://localhost:3000',
+        'http://localhost', // Capacitor / Tauri
         'https://sentinelaai.com.br',
         'https://www.sentinelaai.com.br',
         'https://api.sentinelaai.com.br',
