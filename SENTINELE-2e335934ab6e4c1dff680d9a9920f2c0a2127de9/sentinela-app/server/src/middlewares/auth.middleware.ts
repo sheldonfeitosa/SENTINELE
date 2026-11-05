@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = (process.env.JWT_SECRET || 'sentinela-secret-key-change-me').replace(/[\r\n]/g, '').trim();
+const JWT_SECRET = (process.env.JWT_SECRET || '').replace(/[\r\n]/g, '').trim();
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET não está definido nas variáveis de ambiente.');
+}
 
 export interface AuthRequest extends Request {
     user?: {

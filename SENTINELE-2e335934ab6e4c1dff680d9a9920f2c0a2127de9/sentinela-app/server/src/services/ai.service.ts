@@ -3,7 +3,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export class AIService {
-    private async callWithRetry(prompt: string, maxRetries: number = 2, jsonMode: boolean = true): Promise<string> {
+    // Persona sênior reutilizada em todas as análises de IA.
+    private readonly SENIOR_PERSONA = `Você é um(a) Enfermeiro(a) Gestor(a) de Risco Hospitalar Sênior e Black Belt Lean Six Sigma, com mais de 15 anos de experiência prática em segurança do paciente e qualidade assistencial, atuando em instituições acreditadas (ONA nível 3 / Qmentum / Joint Commission). Você domina e aplica com rigor: RCA2 (Root Cause Analysis and Action — NPSF/IHI), o Protocolo de Londres, o modelo do Queijo Suíço de James Reason (distinguindo falhas ativas na ponta de condições latentes do sistema), a taxonomia de incidentes da OMS, o diagrama de Ishikawa, os 5 Porquês, a análise de barreiras de segurança e o ciclo DMAIC/PDCA. Suas análises são profundas, específicas ao caso, técnicas e baseadas em evidências — você JAMAIS entrega respostas genéricas ou vagas, nunca culpabiliza o indivíduo, e sempre busca a causa sistêmica e as barreiras que falharam.`;
+
+    private async callWithRetry(prompt: string, maxRetries: number = 2, jsonMode: boolean = true, temperature: number = 0.2): Promise<string> {
         const apiKey = process.env.GROQ_API_KEY;
         if (!apiKey) {
             console.error('AIService ERROR: GROQ_API_KEY is missing!');
@@ -16,7 +19,7 @@ export class AIService {
                 const body: any = {
                     messages: [{ role: 'user', content: prompt }],
                     model: 'llama-3.3-70b-versatile',
-                    temperature: 0.1
+                    temperature: temperature
                 };
 
                 if (jsonMode) {
@@ -67,35 +70,42 @@ export class AIService {
         }
 
         const prompt = `
-            Atue como um Enfermeiro Gestor de Risco Hospitalar experiente(ONA 3).
-            Realize uma Análise de Causa Raiz(ACR) detalhada para o evento descrito.
-            Retorne APENAS um JSON válido.
+            ${this.SENIOR_PERSONA}
 
-    DESCRIÇÃO: "${description}"
-TIPO: "${eventType}"
+            Realize uma Análise de Causa Raiz (ACR) PROFUNDA e específica para o evento abaixo, no padrão RCA2 + Protocolo de Londres. Retorne APENAS um JSON válido (sem markdown).
+
+            DESCRIÇÃO: "${description}"
+            TIPO: "${eventType}"
             INVESTIGAÇÃO PRELIMINAR: ${formattedInvestigation || 'N/A'}
+
+            EXIGÊNCIAS DE QUALIDADE (obrigatórias):
+            - Cada categoria do Ishikawa deve trazer fatores CONCRETOS e plausíveis para ESTE evento específico, distinguindo falhas ativas (na ponta do cuidado) de condições latentes (sistêmicas/organizacionais). É PROIBIDO usar frases genéricas como "revisar protocolos" ou "verificar insumos" sem dizer o quê e por quê.
+            - Os 5 Porquês devem encadear logicamente: cada porquê aprofunda o anterior, saindo do evento imediato até uma causa raiz SISTÊMICA e acionável (processo/organização), sem culpabilização individual.
+            - rootCauseConclusion: 3 a 5 frases. Classifique o nível de dano conforme a taxonomia da OMS, identifique a(s) barreira(s) de segurança que falharam e declare a causa raiz sistêmica.
+            - actionPlan (5W2H): ações SMART (específicas, mensuráveis, com responsável por FUNÇÃO, prazo realista com data, e um indicador de verificação de eficácia no campo 'howMuch' ou 'how'). Priorize ações FORTES na hierarquia de efetividade da ACR (forçantes/automação/padronização física) sobre ações fracas (treinamento, alerta, dupla checagem). Gere de 2 a 4 ações.
+            - Use terminologia técnica de segurança do paciente e qualidade.
 
             Estrutura JSON (chaves em português):
             {
-                "rootCauseConclusion": "Conclusão detalhada",
+                "rootCauseConclusion": "Conclusão sistêmica detalhada (3-5 frases)",
                 "suggestedDeadline": "dd/mm/yyyy",
-                "ishikawa": { 
-                    "metodo": "Fatores relacionados a processos e procedimentos", 
-                    "material": "Fatores relacionados a insumos e recursos físicos", 
-                    "mao_de_obra": "Fatores relacionados a pessoas e treinamento", 
-                    "meio_ambiente": "Fatores relacionados ao local e ambiente", 
-                    "medida": "Fatores relacionados a INDICADORES, métricas, falhas em medições ou falta de dados (NÃO incluir decisões ou ações aqui)", 
-                    "maquina": "Fatores relacionados a equipamentos e tecnologia" 
+                "ishikawa": {
+                    "metodo": "Fatores de processos/procedimentos (falhas ativas e latentes)",
+                    "material": "Fatores de insumos e recursos físicos",
+                    "mao_de_obra": "Fatores humanos, dimensionamento, competência e fatores de desempenho (fadiga, carga)",
+                    "meio_ambiente": "Fatores do ambiente físico e organizacional (cultura, layout, ruído)",
+                    "medida": "Fatores de INDICADORES, métricas, monitoramento ou falta de dados (NUNCA decisões ou ações)",
+                    "maquina": "Fatores de equipamentos, dispositivos e tecnologia/TI"
                 },
                 "fiveWhys": { "why1": "...", "why2": "...", "why3": "...", "why4": "...", "why5": "...", "rootCause": "..." },
                 "actionPlan": [{ "what": "...", "why": "...", "who": "...", "where": "...", "when": "...", "how": "...", "howMuch": "..." }]
             }
 
-            IMPORTANTE: No diagrama de Ishikawa, a categoria 'Medida' deve se referir estritamente a indicadores, métricas, falhas em monitoramento ou falta de dados. Jamais utilize 'Medida' para descrever tomadas de decisão ou planos de ação.
+            IMPORTANTE: No Ishikawa, 'Medida' refere-se estritamente a indicadores, métricas, falhas de monitoramento ou falta de dados — jamais a decisões ou planos de ação.
         `;
 
         try {
-            const text = await this.callWithRetry(prompt);
+            const text = await this.callWithRetry(prompt, 2, true, 0.35);
             const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(cleanText);
         } catch (error: any) {
@@ -106,8 +116,8 @@ TIPO: "${eventType}"
 
     async analyzeIncident(description: string): Promise<any> {
         const prompt = `
-            Atue como um analista de risco hospitalar.
-            Analise o seguinte incidente e retorne um JSON válido.
+            ${this.SENIOR_PERSONA}
+            Classifique o incidente abaixo com rigor técnico e retorne um JSON válido.
             Descrição: "${description}"
 
             Estrutura JSON esperada:
@@ -134,12 +144,13 @@ TIPO: "${eventType}"
 
     async chatWithContext(message: string, context: any): Promise<string> {
         const prompt = `
+            ${this.SENIOR_PERSONA}
             Contexto do Incidente: ${JSON.stringify(context)}
-            Usuário: "${message}"
-            Responda como um especialista em gestão de risco hospitalar.
+            Pergunta do usuário: "${message}"
+            Responda de forma técnica, objetiva e acionável, citando a metodologia aplicável quando pertinente.
         `;
         try {
-            return await this.callWithRetry(prompt, 2, false);
+            return await this.callWithRetry(prompt, 2, false, 0.4);
         } catch (e) {
             return "Desculpe, não consigo responder no momento devido a uma falha na conexão.";
         }
@@ -147,8 +158,8 @@ TIPO: "${eventType}"
 
     async generateFiveWhys(description: string): Promise<any> {
         const prompt = `
-            Atue como um especialista em segurança do paciente.
-            Realize uma análise de "5 Porquês" para o incidente descrito.
+            ${this.SENIOR_PERSONA}
+            Realize uma análise de "5 Porquês" para o incidente descrito, encadeando cada porquê até uma causa raiz sistêmica e acionável (sem culpabilização individual).
             Retorne APENAS um JSON válido.
 
             DESCRIÇÃO: "${description}"

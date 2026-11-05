@@ -7,7 +7,10 @@ import sanitizeHtml from 'sanitize-html';
 import { prisma } from '../lib/prisma';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = (process.env.JWT_SECRET || 'sentinela-secret-key-change-me').replace(/[\r\n]/g, '').trim();
+const JWT_SECRET = (process.env.JWT_SECRET || '').replace(/[\r\n]/g, '').trim();
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET não está definido nas variáveis de ambiente.');
+}
 
 export class NotificationService {
     private repository: NotificationRepository;
@@ -324,16 +327,16 @@ export class NotificationService {
                 .map(m => m.email);
         }
 
-        // 3. Absolute fallback for testing
+        // 3. Fallback: usa o destinatário configurado por ambiente; sem ele, não envia a ninguém.
         if (highManagementEmails.length === 0) {
-            console.log(`[Flow] No managers found, sending to fallback email.`);
-            highManagementEmails = [process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com'];
-        }
-
-        // Always include Sheldon for validation if it's the specific test case
-        if (!highManagementEmails.includes('sheldonfeitosa@gmail.com')) {
-            // Optional: add to list if not present for debugging
-            // highManagementEmails.push('sheldonfeitosa@gmail.com');
+            const fallback = process.env.RISK_MANAGER_EMAIL;
+            if (fallback) {
+                console.log(`[Flow] Nenhum gestor encontrado, usando RISK_MANAGER_EMAIL.`);
+                highManagementEmails = [fallback];
+            } else {
+                console.error('[Flow] Nenhum gestor encontrado e RISK_MANAGER_EMAIL não configurado — relatório de alta gestão NÃO enviado.');
+                return { message: 'No recipients configured', recipients: [] };
+            }
         }
 
         console.log(`[Flow] Triggering High Management Report to: ${highManagementEmails.join(', ')}`);
@@ -382,7 +385,7 @@ export class NotificationService {
         const riskManagers = allManagers.filter(m => m.role === 'ADMIN');
         const riskManagerEmails = riskManagers.length > 0
             ? riskManagers.map(m => m.email)
-            : [process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com', 'qualidade@inmceb.med.br'];
+            : (process.env.RISK_MANAGER_EMAIL ? [process.env.RISK_MANAGER_EMAIL] : []);
 
         const oldDeadline = notification.actionPlanDeadline
             ? new Date(notification.actionPlanDeadline).toLocaleDateString('pt-BR')

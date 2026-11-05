@@ -71,7 +71,11 @@ export class EmailService {
         // This stops the system from crashing during tests when emailing sector managers.
         if (lastError?.message?.includes('testing emails') || lastError?.message?.includes('domain is not verified')) {
             console.log('⚠️ Resend Sandbox Restricted: Rerouting email to verified owner account for testing...');
-            const ownerEmail = process.env.RISK_MANAGER_EMAIL || 'sheldonfeitosa@gmail.com';
+            const ownerEmail = process.env.RISK_MANAGER_EMAIL;
+            if (!ownerEmail) {
+                console.error('⚠️ Sandbox reroute abortado: RISK_MANAGER_EMAIL não configurado.');
+                return { data: null, error: lastError };
+            }
             
             const sandboxWarningHtml = `
             <div style="background-color: #ffebee; border-left: 5px solid #f44336; padding: 15px; margin-bottom: 20px; font-family: Arial, sans-serif;">

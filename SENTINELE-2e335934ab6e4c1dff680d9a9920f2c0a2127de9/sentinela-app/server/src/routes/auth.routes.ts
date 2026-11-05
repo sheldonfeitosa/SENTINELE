@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
 import { AuthService } from '../services/auth.service';
 
 
@@ -7,6 +9,22 @@ import { EmailService } from '../services/email.service';
 const router = Router();
 const authService = new AuthService();
 const emailService = new EmailService();
+
+// Rate limit estrito para o reset de emergência: 3 tentativas por hora por IP
+const emergencyResetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 3,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Muitas tentativas. Tente novamente mais tarde.' }
+});
+
+// Comparação em tempo constante (evita timing attacks na checagem da chave)
+function safeKeyEqual(a: string, b: string): boolean {
+    const ha = crypto.createHash('sha256').update(String(a)).digest();
+    const hb = crypto.createHash('sha256').update(String(b)).digest();
+    return crypto.timingSafeEqual(ha, hb);
+}
 
 router.post('/register', async (req, res) => {
     try {
@@ -125,7 +143,7 @@ router.get('/public-token', async (req, res) => {
 
 // Emergency password reset — protegido por ADMIN_SECRET env var
 // Uso: POST /auth/emergency-reset  { adminKey, email, newPassword }
-router.post('/emergency-reset', async (req, res) => {
+router.post('/emergency-reset', emergencyResetLimiter, async (req, res) => {
     try {
         const { adminKey, email, newPassword } = req.body;
 
@@ -133,7 +151,9 @@ router.post('/emergency-reset', async (req, res) => {
         if (!ADMIN_SECRET) {
             return res.status(503).json({ error: 'Serviço não configurado.' });
         }
-        if (adminKey !== ADMIN_SECRET) {
+        if (!adminKey || !safeKeyEqual(adminKey, ADMIN_SECRET)) {
+            // Auditoria: registra tentativa falha com IP e e-mail alvo
+            console.warn(`[EMERGENCY-RESET] Tentativa NEGADA (chave inválida) | IP: ${req.ip} | alvo: ${email || '(sem email)'} | ${new Date().toISOString()}`);
             return res.status(403).json({ error: 'Chave inválida.' });
         }
         if (!email || !newPassword) {
@@ -157,7 +177,7 @@ router.post('/emergency-reset', async (req, res) => {
             data: { password: hashedPassword, resetToken: null, resetTokenExpiry: null }
         });
 
-        console.log(`[EMERGENCY-RESET] Senha de ${email} resetada com sucesso.`);
+        console.warn(`[EMERGENCY-RESET] Senha de ${email} resetada com sucesso | IP: ${req.ip} | ${new Date().toISOString()}`);
         res.json({ message: `Senha de ${email} atualizada com sucesso.` });
     } catch (error: any) {
         console.error('[EMERGENCY-RESET] Erro:', error.message);
