@@ -14,7 +14,7 @@ export interface Notification {
     idade?: number;
     data_internacao?: string;
     tipo_evento: string; // TIPO DE EVENTO (IA)
-    classificacao: 'LEVE' | 'MODERADO' | 'GRAVE' | 'NA';
+    classificacao: 'LEVE' | 'MODERADO' | 'GRAVE' | 'NA' | 'NÃO CLASSIFICADO';
     prazo: string;
     status: 'Aberto' | 'Em Análise' | 'Concluído';
     recomendacao_ia?: string;

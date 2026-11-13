@@ -1,6 +1,22 @@
 import { RiskManagerRepository } from '../repositories/risk-manager.repository';
 import bcrypt from 'bcryptjs';
 import { EmailService } from './email.service';
+import { HttpError, assertStrongPassword, randomPassword } from '../lib/http';
+
+/** Papéis que podem ser atribuídos pela tela de gestores. SUPER_ADMIN nunca é atribuível por aqui. */
+const ASSIGNABLE_ROLES = ['GESTOR_SETOR', 'ADMIN', 'ALTA_GESTAO', 'TENANT_ADMIN'];
+const DEFAULT_ROLE = 'GESTOR_SETOR';
+
+function checkRole(role: unknown, requesterRole: string): string | undefined {
+    if (role === undefined || role === null || role === '') return undefined;
+    if (typeof role !== 'string' || !ASSIGNABLE_ROLES.includes(role)) {
+        throw new HttpError(400, 'Função inválida');
+    }
+    if (role === 'TENANT_ADMIN' && !['TENANT_ADMIN', 'SUPER_ADMIN'].includes(requesterRole)) {
+        throw new HttpError(403, 'Somente o administrador do hospital pode criar outro administrador');
+    }
+    return role;
+}
 
 export class RiskManagerService {
     private repository: RiskManagerRepository;
@@ -21,28 +37,35 @@ export class RiskManagerService {
         }
     }
 
-    async createManager(tenantId: string, data: any) {
-        const password = data.password || 'mudar123';
-        const passwordHash = await bcrypt.hash(password, 10);
+    async createManager(tenantId: string, data: any, requesterRole = '') {
+        if (!data?.email || typeof data.email !== 'string' || !data?.name) {
+            throw new HttpError(400, 'Nome e e-mail são obrigatórios');
+        }
+        const email = data.email.trim().toLowerCase();
+        const role = checkRole(data.role, requesterRole);
 
-        // Check if user already exists in the system
-        const existingUser = await this.repository.findByEmail(data.email);
+        const existingUser = await this.repository.findByEmail(email);
 
         let manager;
         if (existingUser) {
-            // Update existing user - useful if they were just a regular user or added to wrong tenant
-            manager = await this.repository.update(existingUser.id, existingUser.tenantId, {
+            // Nunca trazer para este hospital uma conta de outro hospital (nem o super admin)
+            if (existingUser.tenantId !== tenantId || existingUser.role === 'SUPER_ADMIN') {
+                throw new HttpError(409, 'Este e-mail já está em uso');
+            }
+            manager = await this.repository.update(existingUser.id, tenantId, {
                 name: data.name || existingUser.name,
-                role: data.role || existingUser.role,
+                role: role || existingUser.role,
                 sectors: JSON.stringify(data.sectors || []),
-                tenantId: tenantId // Move them to the current tenant if they were elsewhere or just confirm
             });
         } else {
-            // Create new manager
+            if (data.password) assertStrongPassword(data.password);
+            const password = data.password || randomPassword();
+            const passwordHash = await bcrypt.hash(password, 10);
+
             manager = await this.repository.create(tenantId, {
                 name: data.name,
-                email: data.email,
-                role: data.role || 'TENANT_ADMIN',
+                email,
+                role: role || DEFAULT_ROLE,
                 sectors: JSON.stringify(data.sectors || []),
                 password: passwordHash
             });
@@ -79,14 +102,20 @@ export class RiskManagerService {
         };
     }
 
-    async updateManager(id: number, tenantId: string, data: any) {
+    async updateManager(id: number, tenantId: string, data: any, requesterRole = '') {
+        const current = await this.repository.findById(id, tenantId);
+        if (!current) throw new HttpError(404, 'Gestor não encontrado');
+        if (current.role === 'SUPER_ADMIN') throw new HttpError(403, 'Acesso negado');
+
         const updateData: any = {};
         if (data.name) updateData.name = data.name;
-        if (data.email) updateData.email = data.email;
-        if (data.role) updateData.role = data.role;
+        if (data.email) updateData.email = String(data.email).trim().toLowerCase();
+        const role = checkRole(data.role, requesterRole);
+        if (role) updateData.role = role;
         if (data.sectors) updateData.sectors = JSON.stringify(data.sectors);
 
         if (data.password) {
+            assertStrongPassword(data.password);
             updateData.password = await bcrypt.hash(data.password, 10);
         }
 
@@ -98,6 +127,9 @@ export class RiskManagerService {
     }
 
     async deleteManager(id: number, tenantId: string) {
+        const current = await this.repository.findById(id, tenantId);
+        if (!current) throw new HttpError(404, 'Gestor não encontrado');
+        if (current.role === 'SUPER_ADMIN') throw new HttpError(403, 'Acesso negado');
         return this.repository.delete(id, tenantId);
     }
 }

@@ -65,8 +65,10 @@ export function TratativaPage() {
         setSendingEmail(true);
         try {
             const defaultMessage = isDeadlineRestriction ? 'Solicitação de alteração de prazo.' : 'Contato geral sobre a tratativa.';
-            await apiService.contactRiskManager(Number(id), contactMessage || defaultMessage);
-            setToast({ message: 'Solicitação enviada ao Gestor de Risco com sucesso!', type: 'success' });
+            const r = await apiService.contactRiskManager(Number(id), contactMessage || defaultMessage);
+            setToast(r?.emailSent === false
+                ? { message: r.message || 'Registrado, mas o e-mail NÃO foi enviado (serviço de e-mail não configurado).', type: 'warning' }
+                : { message: 'Solicitação enviada ao Gestor de Risco com sucesso!', type: 'success' });
             setShowDeadlineModal(false);
             setContactMessage('');
         } catch (error) {
@@ -86,8 +88,10 @@ export function TratativaPage() {
             const parts = deferralDate.split('-');
             const dateObj = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
 
-            await apiService.approveDeadline(Number(id), dateObj);
-            setToast({ message: 'Prazo deferido e notificação enviada ao gestor!', type: 'success' });
+            const r = await apiService.approveDeadline(Number(id), dateObj);
+            setToast(r?.emailSent === false
+                ? { message: r.message || 'Prazo deferido, mas o e-mail NÃO foi enviado.', type: 'warning' }
+                : { message: 'Prazo deferido e notificação enviada ao gestor!', type: 'success' });
             setShowDeferralModal(false);
 
             // Refresh data
@@ -583,7 +587,7 @@ export function TratativaPage() {
                         <h2 className="text-sm font-bold text-blue-100 mb-1">{hospitalName}</h2>
                         <h1 className="text-xl font-bold">Tratativa de Evento #{notification.id}</h1>
                         <div className="flex gap-4 mt-2 text-blue-200 text-sm">
-                            <p>Setor Notificado: <span className="font-semibold text-white">{notification.setor}</span></p>
+                            <p>Setor Notificado: <span className="font-semibold text-white">{notification.setor_notificado || notification.setor}</span></p>
                             <p>Data do Evento: <span className="font-semibold text-white">{notification.data_evento}</span></p>
                             <p>Prazo para Resposta: <span className="font-semibold text-white bg-red-500/20 px-2 py-0.5 rounded">{notification.prazo}</span></p>
                         </div>
@@ -960,8 +964,10 @@ export function TratativaPage() {
                                     onClick={async () => {
                                         if (!id) return;
                                         try {
-                                            await apiService.rejectDeadline(Number(id));
-                                            setToast({ message: 'Indeferimento confirmado e e-mail enviado.', type: 'success' });
+                                            const r = await apiService.rejectDeadline(Number(id));
+                                            setToast(r?.emailSent === false
+                                                ? { message: r.message || 'Indeferimento registrado, mas o e-mail NÃO foi enviado.', type: 'warning' }
+                                                : { message: 'Indeferimento confirmado e e-mail enviado.', type: 'success' });
                                             setIsRejectionMode(false);
                                             navigate(window.location.pathname, { replace: true });
                                         } catch (error) {

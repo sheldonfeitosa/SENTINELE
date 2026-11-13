@@ -20,11 +20,16 @@ import linkedinRoutes from './routes/linkedin.routes';
 import webhookRoutes from './routes/webhook.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import adminRoutes from './routes/admin.routes';
+import { globalErrorHandler } from './lib/http';
 
 console.log('--- Initializing Sentinela AI Server ---');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Na Vercel há um proxy na frente: sem isto, req.ip é o IP do proxy e
+// todos os usuários dividem o mesmo limite de requisições.
+app.set('trust proxy', 1);
 
 app.use(helmet({
     frameguard: {
@@ -94,10 +99,11 @@ const apiLimiter = rateLimit({
     message: 'Muitas requisições deste IP, tente novamente após 15 minutos.'
 });
 
+// Limite geral de /api/auth (folgado). Login, cadastro e reset têm limites próprios em auth.routes.ts
 const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hora
-    max: 10, // limite de 10 tentativas de login
-    message: 'Muitas tentativas de login, tente novamente após 1 hora.'
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: 'Muitas requisições, tente novamente em alguns minutos.' }
 });
 
 // Stable routes
@@ -120,6 +126,9 @@ app.use('/api/admin', adminRoutes);
 app.get('/', (req, res) => {
     res.send('Sentinela AI API is running - STABLE-RESTORE');
 });
+
+// Erros não tratados: mensagem genérica para o cliente, detalhe só no log
+app.use(globalErrorHandler);
 
 export default app;
 

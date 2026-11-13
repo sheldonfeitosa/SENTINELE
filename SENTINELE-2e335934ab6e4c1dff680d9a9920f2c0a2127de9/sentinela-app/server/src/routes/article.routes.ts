@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import { ArticleController } from '../controllers/article.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { isAdmin } from '../middlewares/admin.middleware';
 
 const router = Router();
 const controller = new ArticleController();
 
 router.get('/', controller.getAll);
 router.get('/:id', controller.getById);
-router.post('/', controller.create);
+// Publicar artigo no blog: somente o administrador do sistema
+router.post('/', authenticate, isAdmin, controller.create);
 
 // LinkedIn Auth Routes
 import { linkedinService } from '../services/linkedin.service';
@@ -20,11 +23,10 @@ router.get('/auth/linkedin/callback', async (req, res) => {
         const { code } = req.query;
         if (!code) return res.status(400).send('No code provided');
 
-        const accessToken = await linkedinService.getAccessToken(code as string);
+        await linkedinService.getAccessToken(code as string);
 
-        // In a real app, STORE this token in the DB for the user.
-        // For now, we'll just display it so the user can copy it to .env or verify flow.
-        res.send(`<h1>Success! LinkedIn Connected</h1><p>Access Token: ${accessToken}</p>`);
+        // O token NÃO é exibido na página (antes ficava visível para quem abrisse o link).
+        res.send('<h1>LinkedIn conectado</h1><p>Você já pode fechar esta janela.</p>');
     } catch (error) {
         console.error(error);
         res.status(500).send('LinkedIn Auth Failed');

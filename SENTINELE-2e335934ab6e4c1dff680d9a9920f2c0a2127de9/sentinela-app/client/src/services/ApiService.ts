@@ -96,42 +96,76 @@ class ApiService {
         return response.data;
     }
 
+    /**
+     * Datas "só dia" (evento, nascimento, internação) são gravadas como meia-noite UTC
+     * (ou 03:00Z). Formatar em UTC evita mostrar o dia anterior no fuso -03:00.
+     */
+    private formatDay(value: any): string {
+        return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+    }
+
+    /** Normaliza o tipo: 'EVENTO_ADVERSO', 'Evento Adverso', 'NAO CONFORMIDADE'... */
+    private normalizeType(type: any): Notification['tipo_notificacao'] {
+        const t = String(type || '').toUpperCase().replace(/_/g, ' ').normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+        if (t.includes('CONFORMIDADE')) return 'NÃO CONFORMIDADE';
+        return 'EVENTO ADVERSO';
+    }
+
+    /** Sem classificação válida (ex.: IA indisponível) não conta como "Moderado". */
+    private normalizeRisk(risk: any): Notification['classificacao'] {
+        const r = String(risk || '').toUpperCase().trim();
+        if (r === 'LEVE' || r === 'MODERADO' || r === 'GRAVE' || r === 'NA') return r;
+        return 'NÃO CLASSIFICADO';
+    }
+
+    /** Status exibido: o banco usa 'Pendente' por padrão; plano de ação iniciado = 'Em Análise'. */
+    private normalizeStatus(status: any, actionPlanStatus: any): Notification['status'] {
+        const s = String(status || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        if (s.startsWith('conclu') || s === 'fechado' || actionPlanStatus === 'COMPLETED') return 'Concluído';
+        if (s.includes('analise') || s.includes('andamento') || actionPlanStatus === 'IN_PROGRESS') return 'Em Análise';
+        return 'Aberto';
+    }
+
     private mapToNotification(item: any): Notification {
+        const classificacao = this.normalizeRisk(item.riskLevel);
         return {
             id: item.id,
             created_at: new Date(item.createdAt).toLocaleString('pt-BR'),
             paciente: item.patientName,
             nome_mae: item.motherName,
-            nascimento: item.birthDate ? new Date(item.birthDate).toLocaleDateString('pt-BR') : undefined,
+            nascimento: item.birthDate ? this.formatDay(item.birthDate) : undefined,
             sexo: item.sex,
             setor: item.sector,
             setor_notificado: item.notifySector,
             descricao: item.description,
-            tipo_notificacao: item.type as any,
-            data_evento: new Date(item.eventDate).toLocaleDateString('pt-BR'),
+            tipo_notificacao: this.normalizeType(item.type),
+            data_evento: this.formatDay(item.eventDate),
             periodo: item.period,
             idade: item.birthDate ? this.calculateAge(new Date(item.birthDate)) : undefined,
-            data_internacao: item.admissionDate ? new Date(item.admissionDate).toLocaleDateString('pt-BR') : undefined,
-            tipo_evento: item.eventTypeAi || 'EM ANÁLISE',
-            classificacao: (item.riskLevel as any) || 'MODERADO',
-            prazo: this.calculateDeadline(new Date(item.eventDate), (item.riskLevel as any) || 'MODERADO'),
-            status: item.status as any,
+            data_internacao: item.admissionDate ? this.formatDay(item.admissionDate) : undefined,
+            tipo_evento: item.eventTypeAi && item.eventTypeAi !== 'ERRO' ? item.eventTypeAi : 'EM ANÁLISE',
+            classificacao,
+            prazo: this.calculateDeadline(new Date(item.eventDate), classificacao),
+            status: this.normalizeStatus(item.status, item.actionPlanStatus),
             recomendacao_ia: item.aiAnalysis || 'Aguardando análise...',
             // Action Plan Fields
             rootCause: item.rootCause,
             actionPlan: item.actionPlan,
             actionPlanStatus: item.actionPlanStatus || 'NOT_STARTED',
             actionPlanStartDate: item.actionPlanStartDate ? new Date(item.actionPlanStartDate).toLocaleDateString('pt-BR') : undefined,
-            actionPlanDeadline: item.actionPlanDeadline ? new Date(item.actionPlanDeadline).toLocaleDateString('pt-BR') : undefined,
+            actionPlanDeadline: item.actionPlanDeadline ? this.formatDay(item.actionPlanDeadline) : undefined,
             investigationList: item.investigationList,
             notivisaNumber: item.notivisaNumber
         };
     }
 
+    /** Idade em anos completos, usando as partes UTC da data de nascimento (evita erro de fuso). */
     private calculateAge(birthDate: Date): number {
-        const ageDifMs = Date.now() - birthDate.getTime();
-        const ageDate = new Date(ageDifMs);
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
+        const now = new Date();
+        let age = now.getFullYear() - birthDate.getUTCFullYear();
+        const m = now.getMonth() - birthDate.getUTCMonth();
+        if (m < 0 || (m === 0 && now.getDate() < birthDate.getUTCDate())) age--;
+        return age;
     }
 
     private calculateDeadline(date: Date, risk: string): string {

@@ -119,9 +119,6 @@ const LoginPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex font-sans relative">
-            <div className="fixed bottom-4 right-4 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold z-50 shadow-lg animate-pulse">
-                v2.0 CHECK
-            </div>
             {/* Left Side - Marketing (Persuasive) */}
             <div className="hidden lg:flex lg:w-1/2 bg-slate-900 text-white flex-col justify-center p-12 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">

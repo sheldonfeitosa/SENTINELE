@@ -1,5 +1,16 @@
-import { Incident, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+
+/** Campos que podem sair na API. NUNCA incluir password, resetToken ou tokens do LinkedIn. */
+export const SAFE_USER_SELECT = {
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+    sectors: true,
+    tenantId: true,
+    createdAt: true,
+} as const;
 
 export class RiskManagerRepository {
     async create(tenantId: string, data: any) {
@@ -8,9 +19,11 @@ export class RiskManagerRepository {
                 ...data,
                 tenantId
             },
+            select: SAFE_USER_SELECT,
         });
     }
 
+    /** Uso interno (inclui todos os campos). Não devolver direto na API. */
     async findByEmail(email: string) {
         return prisma.user.findUnique({
             where: { email }
@@ -20,6 +33,7 @@ export class RiskManagerRepository {
     async findAll(tenantId: string) {
         return prisma.user.findMany({
             where: { tenantId },
+            select: SAFE_USER_SELECT,
             orderBy: {
                 name: 'asc'
             }
@@ -28,20 +42,23 @@ export class RiskManagerRepository {
 
     async findById(id: number, tenantId: string) {
         return prisma.user.findFirst({
-            where: { id, tenantId }
+            where: { id, tenantId },
+            select: SAFE_USER_SELECT,
         });
     }
 
     async update(id: number, tenantId: string, data: Partial<User>) {
         return prisma.user.update({
             where: { id, tenantId },
-            data
+            data,
+            select: SAFE_USER_SELECT,
         });
     }
 
     async delete(id: number, tenantId: string) {
         return prisma.user.delete({
-            where: { id, tenantId }
+            where: { id, tenantId },
+            select: { id: true },
         });
     }
 

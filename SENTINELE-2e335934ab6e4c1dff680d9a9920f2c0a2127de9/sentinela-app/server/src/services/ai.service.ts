@@ -135,9 +135,11 @@ export class AIService {
         } catch (e: any) {
             console.error("AI Analyze Incident Failed:", e.message);
             return {
-                eventType: 'ERRO',
-                riskLevel: 'MODERADO',
-                recommendation: 'Falha na análise automática. Por favor, revise manualmente.'
+                eventType: null,
+                riskLevel: null,
+                recommendation: process.env.GROQ_API_KEY
+                    ? 'Análise IA indisponível no momento — classifique manualmente.'
+                    : 'Análise IA não configurada — classifique manualmente.'
             };
         }
     }
@@ -152,7 +154,9 @@ export class AIService {
         try {
             return await this.callWithRetry(prompt, 2, false, 0.4);
         } catch (e) {
-            return "Desculpe, não consigo responder no momento devido a uma falha na conexão.";
+            return process.env.GROQ_API_KEY
+                ? 'O assistente de IA está indisponível no momento. Tente novamente em alguns minutos.'
+                : 'O assistente de IA não está configurado neste ambiente (falta a chave GROQ_API_KEY).';
         }
     }
 

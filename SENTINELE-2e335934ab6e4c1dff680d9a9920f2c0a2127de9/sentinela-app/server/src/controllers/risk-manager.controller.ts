@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { RiskManagerService } from '../services/risk-manager.service';
+import { parseId, sendError } from '../lib/http';
 
 export class RiskManagerController {
     private service: RiskManagerService;
@@ -10,21 +11,11 @@ export class RiskManagerController {
 
     create = async (req: Request, res: Response) => {
         try {
-            const tenantId = (req as any).user.tenantId;
-
-            const managerData = {
-                ...req.body,
-                tenantId
-            };
-
-            const manager = await this.service.createManager(tenantId, managerData);
+            const user = (req as any).user;
+            const manager = await this.service.createManager(user.tenantId, req.body, user.role);
             res.status(201).json(manager);
         } catch (error: any) {
-            console.error('CREATE MANAGER ERROR:', error);
-            res.status(500).json({
-                error: 'Failed to create manager',
-                details: error.message || 'Unknown error'
-            });
+            sendError(res, error, 'Falha ao criar gestor', 'CREATE MANAGER');
         }
     };
 
@@ -34,49 +25,45 @@ export class RiskManagerController {
             const managers = await this.service.getAllManagers(tenantId);
             res.json(managers);
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Failed to fetch managers' });
+            sendError(res, error, 'Falha ao buscar gestores', 'LIST MANAGERS');
         }
     };
 
     getById = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseId(req.params.id);
             const tenantId = (req as any).user.tenantId;
             const manager = await this.service.getManagerById(id, tenantId);
 
             if (!manager) {
-                res.status(404).json({ error: 'Manager not found' });
+                res.status(404).json({ error: 'Gestor não encontrado' });
                 return;
             }
             res.json(manager);
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Failed to fetch manager' });
+            sendError(res, error, 'Falha ao buscar gestor', 'GET MANAGER');
         }
     };
 
     update = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
-            const tenantId = (req as any).user.tenantId;
-            const manager = await this.service.updateManager(id, tenantId, req.body);
+            const id = parseId(req.params.id);
+            const user = (req as any).user;
+            const manager = await this.service.updateManager(id, user.tenantId, req.body, user.role);
             res.json(manager);
         } catch (error: any) {
-            console.error('UPDATE MANAGER ERROR:', error.message);
-            res.status(500).json({ error: 'Failed to update manager', details: error.message });
+            sendError(res, error, 'Falha ao atualizar gestor', 'UPDATE MANAGER');
         }
     };
 
     delete = async (req: Request, res: Response) => {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseId(req.params.id);
             const tenantId = (req as any).user.tenantId;
             await this.service.deleteManager(id, tenantId);
             res.status(204).send();
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Failed to delete manager' });
+            sendError(res, error, 'Falha ao remover gestor', 'DELETE MANAGER');
         }
     };
 }

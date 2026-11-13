@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { EmailService } from './email.service';
 import { prisma } from '../lib/prisma';
 import crypto from 'crypto';
+import { HttpError, assertStrongPassword, randomPassword } from '../lib/http';
 const SALT_ROUNDS = 10;
 const JWT_SECRET = (process.env.JWT_SECRET || '').replace(/[\r\n]/g, '').trim();
 if (!JWT_SECRET) {
@@ -41,6 +42,12 @@ interface AuthResponse {
 export class AuthService {
 
     async register(data: RegisterData): Promise<AuthResponse> {
+        const required: (keyof RegisterData)[] = ['email', 'password', 'name', 'tenantName', 'tenantSlug'];
+        for (const f of required) {
+            if (!data?.[f] || typeof data[f] !== 'string') throw new HttpError(400, `Campo obrigatório: ${f}`);
+        }
+        assertStrongPassword(data.password);
+
         // 1. Check if user already exists
         const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
         if (existingUser) {
@@ -99,6 +106,9 @@ export class AuthService {
     }
 
     async login(data: LoginData): Promise<AuthResponse> {
+        if (!data || typeof data.email !== 'string' || typeof data.password !== 'string' || !data.email || !data.password) {
+            throw new HttpError(400, 'E-mail e senha são obrigatórios');
+        }
         // 1. Find User
         const user = await prisma.user.findUnique({
             where: { email: data.email },
@@ -165,8 +175,8 @@ export class AuthService {
             counter++;
         }
 
-        // Generate Random Password (8 chars)
-        const password = Math.random().toString(36).slice(-8);
+        // Senha temporária aleatória (criptograficamente segura), enviada só por e-mail
+        const password = randomPassword();
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
         // Transaction: Create Tenant + User
@@ -206,7 +216,8 @@ export class AuthService {
     async resetPassword(email: string): Promise<void> {
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-            throw new Error('Usuário não encontrado.');
+            // Resposta neutra: não revelar se o e-mail existe
+            return;
         }
 
         // Generate token
@@ -244,6 +255,7 @@ export class AuthService {
     }
 
     async updatePasswordWithToken(token: string, newPassword: string): Promise<void> {
+        assertStrongPassword(newPassword);
         const user = await this.verifyResetToken(token);
         const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 

@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import crypto from 'crypto';
 import { AuthService } from '../services/auth.service';
+import { sendUserError, passwordProblem } from '../lib/http';
 
 
 import { EmailService } from '../services/email.service';
@@ -19,6 +20,34 @@ const emergencyResetLimiter = rateLimit({
     message: { error: 'Muitas tentativas. Tente novamente mais tarde.' }
 });
 
+// Login: 10 tentativas a cada 15 min por IP + e-mail (não bloqueia o hospital inteiro atrás do mesmo IP)
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip || '')}|${String(req.body?.email || '').toLowerCase()}`,
+    message: { error: 'Muitas tentativas de login. Aguarde 15 minutos.' }
+});
+
+// Cadastro / trial: 5 por hora por IP
+const signupLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 5,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Muitas solicitações. Tente novamente mais tarde.' }
+});
+
+// Recuperação de senha: 5 por hora por IP
+const passwordResetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 5,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Muitas solicitações. Tente novamente mais tarde.' }
+});
+
 // Comparação em tempo constante (evita timing attacks na checagem da chave)
 function safeKeyEqual(a: string, b: string): boolean {
     const ha = crypto.createHash('sha256').update(String(a)).digest();
@@ -26,25 +55,25 @@ function safeKeyEqual(a: string, b: string): boolean {
     return crypto.timingSafeEqual(ha, hb);
 }
 
-router.post('/register', async (req, res) => {
+router.post('/register', signupLimiter, async (req, res) => {
     try {
         const result = await authService.register(req.body);
         res.status(201).json(result);
     } catch (error: any) {
-        res.status(400).json({ error: error.message });
+        sendUserError(res, error, 400, 'REGISTER');
     }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     try {
         const result = await authService.login(req.body);
         res.json(result);
     } catch (error: any) {
-        res.status(401).json({ error: error.message });
+        sendUserError(res, error, 401, 'LOGIN');
     }
 });
 
-router.post('/trial-request', async (req, res) => {
+router.post('/trial-request', signupLimiter, async (req, res) => {
     try {
         const { name, hospital, email, phone } = req.body;
 
@@ -53,8 +82,8 @@ router.post('/trial-request', async (req, res) => {
             return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
         }
 
-        // Create trial user and send welcome email
-        const { password } = await authService.createTrial({ name, hospital, email, phone });
+        // Create trial user and send welcome email (a senha vai SÓ por e-mail)
+        await authService.createTrial({ name, hospital, email, phone });
 
         // Also notify admin regarding new lead (optional, keeping it for now)
         try {
@@ -64,25 +93,26 @@ router.post('/trial-request', async (req, res) => {
         }
 
         res.status(200).json({
-            message: 'Ambiente criado com sucesso!',
-            tempPassword: password
+            message: 'Ambiente criado com sucesso! Enviamos a senha de acesso para o seu e-mail.'
         });
     } catch (error: any) {
-        console.error('Trial request error:', error);
-        res.status(400).json({ error: error.message || 'Erro ao processar solicitação' });
+        sendUserError(res, error, 400, 'TRIAL');
     }
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', passwordResetLimiter, async (req, res) => {
+    const neutral = { message: 'Se o e-mail estiver cadastrado, enviaremos um link de recuperação.' };
     try {
-        const { email } = req.body;
-        if (!email) {
+        const { email } = req.body || {};
+        if (!email || typeof email !== 'string') {
             return res.status(400).json({ error: 'Email é obrigatório' });
         }
         await authService.resetPassword(email);
-        res.json({ message: 'Um link de recuperação foi enviado para o seu e-mail.' });
+        res.json(neutral);
     } catch (error: any) {
-        res.status(400).json({ error: error.message });
+        // Mesmo com falha (ex.: e-mail não enviado), resposta neutra; detalhe só no log
+        console.error('[RESET-PASSWORD]', error?.message);
+        res.json(neutral);
     }
 });
 
@@ -108,7 +138,7 @@ router.post('/update-password-with-token', async (req, res) => {
         await authService.updatePasswordWithToken(token, newPassword);
         res.json({ message: 'Senha atualizada com sucesso.' });
     } catch (error: any) {
-        res.status(400).json({ error: error.message });
+        sendUserError(res, error, 400, 'UPDATE-PASSWORD');
     }
 });
 
@@ -159,8 +189,9 @@ router.post('/emergency-reset', emergencyResetLimiter, async (req, res) => {
         if (!email || !newPassword) {
             return res.status(400).json({ error: 'email e newPassword são obrigatórios.' });
         }
-        if (newPassword.length < 6) {
-            return res.status(400).json({ error: 'Senha deve ter pelo menos 6 caracteres.' });
+        const pwProblem = passwordProblem(newPassword);
+        if (pwProblem) {
+            return res.status(400).json({ error: pwProblem });
         }
 
         const bcrypt = await import('bcryptjs');

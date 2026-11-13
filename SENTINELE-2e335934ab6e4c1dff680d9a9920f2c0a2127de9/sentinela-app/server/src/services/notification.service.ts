@@ -1,4 +1,6 @@
 import { NotificationRepository } from '../repositories/notification.repository';
+import { HttpError } from '../lib/http';
+const emailConfigured = () => !!process.env.RESEND_API_KEY;
 import { AIService } from './ai.service';
 import { EmailService } from './email.service';
 import { AuthService } from './auth.service';
@@ -102,10 +104,10 @@ export class NotificationService {
                     tenantId = tenant.id;
                     console.log(`Resolved to Tenant ID: ${tenantId}`);
                 } else {
-                    throw new Error(`Hospital não encontrado: ${data.tenantSlug}`);
+                    throw new HttpError(404, "Hospital não encontrado");
                 }
             } else {
-                throw new Error('Identificação do hospital ausente. Por favor, use o link correto da sua instituição.');
+                throw new HttpError(400, 'Identificação do hospital ausente. Por favor, use o link correto da sua instituição.');
             }
         }
 
@@ -179,7 +181,7 @@ export class NotificationService {
         const updateData: any = {};
         const currentNotification = await this.repository.findById(id, tenantId);
 
-        if (!currentNotification) throw new Error('Notification not found');
+        if (!currentNotification) throw new HttpError(404, 'Notificação não encontrada');
 
         if (data.tipo_notificacao) {
             updateData.type = data.tipo_notificacao;
@@ -229,7 +231,7 @@ export class NotificationService {
 
     async startActionPlan(id: number, tenantId: string, customDeadline?: Date) {
         const notification = await this.repository.findById(id, tenantId);
-        if (!notification) throw new Error('Notification not found');
+        if (!notification) throw new HttpError(404, 'Notificação não encontrada');
 
         const riskLevel = notification.riskLevel || 'MODERADO';
         const startDate = new Date();
@@ -263,7 +265,7 @@ export class NotificationService {
 
     async reanalyzeIncident(id: number, tenantId: string) {
         const notification = await this.repository.findById(id, tenantId);
-        if (!notification) throw new Error('Notification not found');
+        if (!notification) throw new HttpError(404, 'Notificação não encontrada');
 
         console.log(`Re-analyzing incident #${id}...`);
         const aiResult = await this.aiService.analyzeIncident(notification.description);
@@ -280,7 +282,7 @@ export class NotificationService {
 
     async generateRCA(id: number, tenantId: string) {
         const notification = await this.repository.findById(id, tenantId);
-        if (!notification) throw new Error('Notification not found');
+        if (!notification) throw new HttpError(404, 'Notificação não encontrada');
 
         const description = notification.description;
         const eventType = notification.eventTypeAi || notification.type;
@@ -291,7 +293,7 @@ export class NotificationService {
 
     async generateFiveWhys(id: number, tenantId: string) {
         const notification = await this.repository.findById(id, tenantId);
-        if (!notification) throw new Error('Notification not found');
+        if (!notification) throw new HttpError(404, 'Notificação não encontrada');
 
         return this.aiService.generateFiveWhys(notification.description);
     }
@@ -300,7 +302,7 @@ export class NotificationService {
 
     async forwardToSector(id: number, tenantId: string, sectorManagerEmail: string) {
         const incident = await this.repository.findById(id, tenantId);
-        if (!incident) throw new Error('Incident not found');
+        if (!incident) throw new HttpError(404, 'Notificação não encontrada');
 
         const url = await this.buildMagicUrl(sectorManagerEmail, id);
         await this.emailService.sendActionRequest(incident, sectorManagerEmail, url);
@@ -309,7 +311,7 @@ export class NotificationService {
 
     async notifyHighManagement(id: number, tenantId: string) {
         const incident = await this.repository.findById(id, tenantId);
-        if (!incident) throw new Error('Incident not found');
+        if (!incident) throw new HttpError(404, 'Notificação não encontrada');
 
         // Find managers for the specific tenant
         const managers = await this.riskManagerRepo.findAll(tenantId);
@@ -369,7 +371,7 @@ export class NotificationService {
 
     async chatWithAI(id: number, tenantId: string, message: string, context?: any) {
         const notification = await this.repository.findById(id, tenantId);
-        if (!notification) throw new Error('Notification not found');
+        if (!notification) throw new HttpError(404, 'Notificação não encontrada');
 
         return this.aiService.chatWithContext(message, {
             ...context,
@@ -378,7 +380,7 @@ export class NotificationService {
     }
     async contactRiskManager(id: number, tenantId: string, message: string, requesterEmail?: string) {
         const notification = await this.repository.findById(id, tenantId);
-        if (!notification) throw new Error('Notification not found');
+        if (!notification) throw new HttpError(404, 'Notificação não encontrada');
 
         // Find all Risk Managers (ADMIN) for this specific tenant
         const allManagers = await this.riskManagerRepo.findAll(tenantId);
@@ -407,12 +409,12 @@ export class NotificationService {
             }
         }
 
-        return { message: 'Email sent to Risk Manager(s)' };
+        return { message: emailConfigured() ? 'Email sent to Risk Manager(s)' : 'E-mail NÃO enviado: serviço de e-mail não configurado', emailSent: emailConfigured() };
     }
 
     async approveDeadline(id: number, tenantId: string, newDeadline: Date) {
         const notification = await this.repository.findById(id, tenantId);
-        if (!notification) throw new Error('Notification not found');
+        if (!notification) throw new HttpError(404, 'Notificação não encontrada');
 
         // Update deadline
         console.log(`[Flow] Approving deadline for incident ${id} to ${newDeadline.toISOString()}`);
@@ -434,12 +436,12 @@ export class NotificationService {
             }
         }
 
-        return { message: 'Deadline approved and email sent' };
+        return { message: emailConfigured() ? 'Deadline approved and email sent' : 'Prazo aprovado (e-mail NÃO enviado: serviço não configurado)', emailSent: emailConfigured() };
     }
 
     async rejectDeadline(id: number, tenantId: string) {
         const notification = await this.repository.findById(id, tenantId);
-        if (!notification) throw new Error('Notification not found');
+        if (!notification) throw new HttpError(404, 'Notificação não encontrada');
 
         // Find sector manager for this tenant
         const sectorManager = await this.riskManagerRepo.findBySector(notification.notifySector, tenantId);
@@ -456,6 +458,6 @@ export class NotificationService {
             }
         }
 
-        return { message: 'Deadline rejected and email sent' };
+        return { message: emailConfigured() ? 'Deadline rejected and email sent' : 'Prazo rejeitado (e-mail NÃO enviado: serviço não configurado)', emailSent: emailConfigured() };
     }
 }
