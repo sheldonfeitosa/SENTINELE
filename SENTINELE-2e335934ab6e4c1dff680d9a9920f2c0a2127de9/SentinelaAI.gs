@@ -27,7 +27,7 @@ const EMAIL_DIRETORIA = "qualidadeinmceb@gmail.com";
 const NOME_PRESIDENTE = "Zilmar Pereira";
 
 // CHAVES (MANTIDAS)
-const GEMINI_API_KEY = 'AIzaSyB38UE53y-BL3j3bjI-XAfto-D1eNLBLZQ'; 
+const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'); // defina em Configuracoes do projeto > Propriedades do script 
 const WHATSAPP_API_URL = "https://api.z-api.io/instances/3EAA37B303BAF1CAB4A91ABB50AD3431/token/AC8EC029802C8A5DA83D0DAC/send-text"; 
 const WHATSAPP_TOKEN = "AC8EC029802C8A5DA83D0DAC"; // Token da Instancia
 const WHATSAPP_CLIENT_TOKEN = "F70dcf66d5e194d9d844ac11b6e079d1eS"; // Token de Seguranca da Conta (Client-Token) - COLE AQUI O TOKEN COMPLETO DA ABA SEGURANCA   

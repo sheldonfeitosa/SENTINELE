@@ -37,7 +37,7 @@ const LoginPage: React.FC = () => {
     const [prospectName, setProspectName] = useState('');
     const [prospectPhone, setProspectPhone] = useState('');
     const [prospectHospital, setProspectHospital] = useState('');
-    // const [prospectEmail, setProspectEmail] = useState('sheldonfeitosa@gmail.com'); // Removed unused state
+    
     const [ctaSent, setCtaSent] = useState(false);
 
 

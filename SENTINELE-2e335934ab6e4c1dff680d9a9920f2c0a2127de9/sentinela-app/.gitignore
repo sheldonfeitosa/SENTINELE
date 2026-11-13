@@ -46,3 +46,15 @@ Thumbs.db
 
 .vercel
 .env*.local
+
+# Modelo de variaveis (sem valores reais) PODE ir para o git
+!.env.example
+
+# Dados reais / bancos locais / exportacoes - NUNCA versionar (LGPD)
+*.csv
+*.db
+*.sqlite
+*.sqlite3
+backups/
+secret.txt
+*secret*.txt

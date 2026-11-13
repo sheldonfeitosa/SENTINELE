@@ -11,7 +11,7 @@ const ID_PLANILHA = "15pM1FjuEig49kOa_LXzb9KHYd0yXXWcd4MlIETHKv-k";
 const EMAIL_GESTOR_RISCO = "sheldonfeitosa@gmail.com";
 const EMAIL_DIRETORIA = "qualidadeinmceb@gmail.com";
 const NOME_PRESIDENTE = "Zilmar Pereira";
-const GEMINI_API_KEY = 'AIzaSyB38UE53y-BL3j3bjI-XAfto-D1eNLBLZQ';
+const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'); // defina em Configuracoes do projeto > Propriedades do script
 
 const NOME_SISTEMA = "SENTINELA AI";
 const NOME_DA_PLANILHA = "DATA";

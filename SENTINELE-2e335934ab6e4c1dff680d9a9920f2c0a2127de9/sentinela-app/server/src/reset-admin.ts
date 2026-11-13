@@ -9,8 +9,11 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-    const email = 'sheldonfeitosa@gmail.com';
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    // Uso: npx ts-node src/reset-admin.ts <email>  (ou ADMIN_EMAIL). A senha nova e aleatoria e aparece uma unica vez.
+    const email = process.argv[2] || process.env.ADMIN_EMAIL;
+    if (!email) throw new Error('Informe o e-mail: npx ts-node src/reset-admin.ts <email>');
+    const newPassword = require('crypto').randomBytes(12).toString('base64url');
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Try to find if user exists first
     let user = await prisma.user.findUnique({ where: { email } });
@@ -42,7 +45,7 @@ async function main() {
             data: {
                 email,
                 password: hashedPassword,
-                name: 'Sheldon Feitosa',
+                name: 'Administrador',
                 role: 'SUPER_ADMIN',
                 tenantId: tenant.id
             }
@@ -51,7 +54,7 @@ async function main() {
     }
 
     console.log(`User: ${user.email}`);
-    console.log(`New Password: admin123`);
+    console.log(`New Password: ${newPassword}`);
     console.log(`Role: ${user.role}`);
 }
 

@@ -1,0 +1,17 @@
+# Dados reais de pacientes / bancos / exportacoes - NUNCA versionar (LGPD)
+*.csv
+*.xlsx
+*.db
+*.sqlite
+*.sqlite3
+backups/
+backups-sentinela/
+
+# Segredos
+.env
+.env.*
+!.env.example
+secret.txt
+*secret*.txt
+deploy-secrets*.txt
+*.local.txt

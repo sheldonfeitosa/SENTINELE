@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Chave da API do Gemini (Extraída de SentinelaAI.gs)
-const GEMINI_API_KEY = 'AIzaSyB38UE53y-BL3j3bjI-XAfto-D1eNLBLZQ';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Caminhos para a base de conhecimento (ajuste conforme necessário para o ambiente local)
 const BRAIN_PATH = 'C:/Users/sheld/.gemini/antigravity/brain/bf6599dc-6215-4fe8-ba63-c402205e30d9';

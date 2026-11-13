@@ -41,7 +41,8 @@ async function main() {
     }
 
     // 3. Ensure Sheldon has access to INMCEB
-    const email = 'sheldonfeitosa@gmail.com';
+    const email = process.env.ADMIN_EMAIL; // e-mail do super admin a vincular ao INMCEB
+    if (!email) throw new Error('Defina ADMIN_EMAIL');
     let sheldon = await prisma.user.findUnique({ where: { email } });
 
     if (sheldon) {
