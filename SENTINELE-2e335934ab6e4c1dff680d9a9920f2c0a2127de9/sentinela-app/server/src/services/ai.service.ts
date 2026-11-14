@@ -7,41 +7,38 @@ export class AIService {
     private readonly SENIOR_PERSONA = `Você é um(a) Enfermeiro(a) Gestor(a) de Risco Hospitalar Sênior, Black Belt Lean Six Sigma e Consultor(a) da ONA (Organização Nacional de Acreditação), com mais de 15 anos de experiência prática em segurança do paciente e qualidade assistencial, atuando em instituições acreditadas (ONA níveis 1 a 3 / Qmentum / Joint Commission). Você trabalha em estrita conformidade com a legislação sanitária brasileira, em especial a RDC ANVISA nº 36/2013 (ações para a segurança do paciente em serviços de saúde: Núcleo de Segurança do Paciente, Plano de Segurança do Paciente, notificação e investigação de eventos adversos e vigilância das Metas Internacionais de Segurança do Paciente) e a RDC ANVISA nº 63/2011 (Boas Práticas de Funcionamento para os Serviços de Saúde); cite o dispositivo pertinente sempre que ele embasar a análise. Você domina e aplica com rigor: RCA2 (Root Cause Analysis and Action — NPSF/IHI), o Protocolo de Londres, o modelo do Queijo Suíço de James Reason (distinguindo falhas ativas na ponta de condições latentes do sistema), a taxonomia de incidentes da OMS, o diagrama de Ishikawa, os 5 Porquês, a análise de barreiras de segurança e o ciclo DMAIC/PDCA. Suas análises são profundas, específicas ao caso, técnicas e baseadas em evidências — você JAMAIS entrega respostas genéricas ou vagas, nunca culpabiliza o indivíduo, e sempre busca a causa sistêmica e as barreiras que falharam. Acima de tudo, suas recomendações e planos de ação são EXEQUÍVEIS: realistas para a estrutura e os recursos de uma clínica ou hospital de médio porte, com responsável por função, prazo com data e forma objetiva de verificar a eficácia — você nunca propõe ações impraticáveis, abstratas ou meramente teóricas.`;
 
     private async callWithRetry(prompt: string, maxRetries: number = 2, jsonMode: boolean = true, temperature: number = 0.2): Promise<string> {
-        const apiKey = process.env.GROQ_API_KEY;
+        const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            console.error('AIService ERROR: GROQ_API_KEY is missing!');
+            console.error('AIService ERROR: GEMINI_API_KEY is missing!');
             throw new Error("AI Service not configured.");
         }
 
+        const MODEL = 'gemini-2.5-flash';
         let attempts = 0;
         while (attempts <= maxRetries) {
             try {
+                const generationConfig: any = { temperature: temperature };
+                if (jsonMode) {
+                    generationConfig.responseMimeType = 'application/json';
+                }
                 const body: any = {
-                    messages: [{ role: 'user', content: prompt }],
-                    model: 'llama-3.3-70b-versatile',
-                    temperature: temperature
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: generationConfig
                 };
 
-                if (jsonMode) {
-                    body.response_format = { type: "json_object" };
-                }
-
-                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
 
                 if (!response.ok) {
                     const errorBody = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorBody.substring(0, 100)} `);
+                    throw new Error(`HTTP ${response.status}: ${errorBody.substring(0, 150)} `);
                 }
 
                 const data = await response.json();
-                return data.choices?.[0]?.message?.content || '';
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
             } catch (error: any) {
                 attempts++;
                 console.error(`AI Attempt ${attempts} FAILED: ${error.message} `);
@@ -137,7 +134,7 @@ export class AIService {
             return {
                 eventType: null,
                 riskLevel: null,
-                recommendation: process.env.GROQ_API_KEY
+                recommendation: process.env.GEMINI_API_KEY
                     ? 'Análise IA indisponível no momento — classifique manualmente.'
                     : 'Análise IA não configurada — classifique manualmente.'
             };
@@ -154,9 +151,9 @@ export class AIService {
         try {
             return await this.callWithRetry(prompt, 2, false, 0.4);
         } catch (e) {
-            return process.env.GROQ_API_KEY
+            return process.env.GEMINI_API_KEY
                 ? 'O assistente de IA está indisponível no momento. Tente novamente em alguns minutos.'
-                : 'O assistente de IA não está configurado neste ambiente (falta a chave GROQ_API_KEY).';
+                : 'O assistente de IA não está configurado neste ambiente (falta a chave GEMINI_API_KEY).';
         }
     }
 
