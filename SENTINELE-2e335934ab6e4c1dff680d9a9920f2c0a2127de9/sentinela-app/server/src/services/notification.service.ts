@@ -14,7 +14,7 @@ if (!JWT_SECRET) {
     throw new Error('FATAL: JWT_SECRET não está definido nas variáveis de ambiente.');
 }
 
-export class NotificationService {
+function safeDate(v: any): Date | null { if (!v) return null; const d = new Date(v); if (isNaN(d.getTime())) return null; const y = d.getFullYear(); if (y < 1900 || y > 2200) return null; return d; }export class NotificationService {
     private repository: NotificationRepository;
     private aiService: AIService;
     private emailService: EmailService;
@@ -119,11 +119,10 @@ export class NotificationService {
             aiAnalysis: aiResult.recommendation,
             patientName: data.paciente || data.patientName,
             motherName: data.nome_mae || data.motherName || null,
-            birthDate: (data.nascimento || data.birthDate) ? new Date(data.nascimento || data.birthDate) : null,
+            birthDate: safeDate(data.nascimento || data.birthDate),
             sex: data.sexo || data.sex || null,
-            admissionDate: (data.data_internacao || data.admissionDate) ? new Date(data.data_internacao || data.admissionDate) : null,
-            eventDate: (data.data_evento || data.eventDate) ? new Date(data.data_evento || data.eventDate) : new Date(),
-            period: data.periodo || data.period || null,
+            admissionDate: safeDate(data.data_internacao || data.admissionDate),
+eventDate: safeDate(data.data_evento || data.eventDate) || new Date(),            period: data.periodo || data.period || null,
             sector: data.setor || data.sector,
             notifySector: data.setor_notificado || data.notifySector || data.setor || data.sector || "Não Informado",
             type: data.tipo_notificacao || data.type,
