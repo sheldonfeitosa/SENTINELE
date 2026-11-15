@@ -13,7 +13,7 @@ export class AIService {
             throw new Error("AI Service not configured.");
         }
 
-        const MODEL = 'gemini-2.5-flash';
+        const MODEL = 'gemini-3.6-flash';
         let attempts = 0;
         while (attempts <= maxRetries) {
             try {
